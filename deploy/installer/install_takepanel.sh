@@ -24,12 +24,16 @@ log() { echo "[TakePanel] $*"; }
 
 install_packages_apt() {
   apt update
-  apt install -y git curl nginx python3 python3-venv python3-pip nodejs npm openssl
+  apt install -y git curl nginx python3 python3-venv python3-pip openssl ca-certificates gnupg
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  apt install -y nodejs
 }
 
 install_packages_dnf() {
   dnf install -y epel-release
-  dnf install -y git curl nginx python3 python3-pip nodejs npm openssl
+  dnf install -y git curl nginx python3 python3-pip openssl ca-certificates
+  curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+  dnf install -y nodejs
 }
 
 if command -v apt >/dev/null 2>&1; then
@@ -40,6 +44,12 @@ elif command -v dnf >/dev/null 2>&1; then
   install_packages_dnf
 else
   echo "Unsupported OS package manager. Use apt or dnf."
+  exit 1
+fi
+
+NODE_MAJOR="$(node -v | sed 's/^v//' | cut -d. -f1 || echo 0)"
+if [[ "${NODE_MAJOR:-0}" -lt 20 ]]; then
+  echo "Node.js 20+ is required but not available. Current: $(node -v 2>/dev/null || echo 'none')"
   exit 1
 fi
 
