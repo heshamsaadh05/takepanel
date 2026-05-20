@@ -1,0 +1,4 @@
+# Example Postfix main.cf snippet
+myhostname = mail.example.com
+mydomain = example.com
+myorigin = $mydomain

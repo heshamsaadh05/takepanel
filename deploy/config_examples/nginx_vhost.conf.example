@@ -1,0 +1,7 @@
+# Example Nginx vhost template
+server {
+    listen 80;
+    server_name example.com www.example.com;
+    root /var/www/example.com/public;
+    index index.php index.html;
+}

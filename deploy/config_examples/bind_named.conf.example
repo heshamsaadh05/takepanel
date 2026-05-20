@@ -1,0 +1,5 @@
+# Example named.conf options snippet
+options {
+    directory "/var/named";
+    recursion yes;
+};
