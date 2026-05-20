@@ -1,41 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# TakePanel One-Command Installer
-# Supports: Ubuntu/Debian (apt), AlmaLinux/RHEL/CentOS (dnf)
+# TakePanel Zero-Input Installer
+# Usage: curl -fsSL <raw_url> | sudo bash
+# No parameters required.
 
 if [[ $EUID -ne 0 ]]; then
-  echo "Please run as root: sudo bash install_takepanel.sh ..."
+  echo "Please run as root: curl ... | sudo bash"
   exit 1
 fi
 
-DOMAIN="${1:-}"
-EMAIL="${2:-}"
-REPO_URL="${3:-}"
+REPO_URL="https://github.com/heshamsaadh05/takepanel.git"
 INSTALL_DIR="/opt/takepanel"
 BACKEND_DIR="$INSTALL_DIR/backend"
 FRONTEND_DIR="$INSTALL_DIR/frontend"
 APP_USER="takepanel"
 APP_GROUP="takepanel"
 APP_PORT="8000"
-NGINX_SITE="/etc/nginx/sites-available/takepanel.conf"
-NGINX_SITE_ENABLED="/etc/nginx/sites-enabled/takepanel.conf"
-
-if [[ -z "$DOMAIN" || -z "$EMAIL" || -z "$REPO_URL" ]]; then
-  echo "Usage: bash install_takepanel.sh <domain> <email> <repo_url>"
-  exit 1
-fi
+NGINX_SITE="/etc/nginx/conf.d/takepanel.conf"
+SERVER_IP="$(hostname -I | awk '{print $1}')"
 
 log() { echo "[TakePanel] $*"; }
 
 install_packages_apt() {
   apt update
-  apt install -y git curl nginx certbot python3-certbot-nginx python3 python3-venv python3-pip nodejs npm openssl
+  apt install -y git curl nginx python3 python3-venv python3-pip nodejs npm openssl
 }
 
 install_packages_dnf() {
   dnf install -y epel-release
-  dnf install -y git curl nginx certbot python3-certbot-nginx python3 python3-pip nodejs npm openssl
+  dnf install -y git curl nginx python3 python3-pip nodejs npm openssl
 }
 
 if command -v apt >/dev/null 2>&1; then
@@ -108,12 +102,12 @@ systemctl daemon-reload
 systemctl enable takepanel
 systemctl restart takepanel
 
-log "Configuring nginx"
-mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+log "Configuring nginx for server IP"
+mkdir -p /etc/nginx/conf.d
 cat > "$NGINX_SITE" <<EOF
 server {
-    listen 80;
-    server_name $DOMAIN www.$DOMAIN;
+    listen 80 default_server;
+    server_name _;
 
     root $FRONTEND_DIR/dist;
     index index.html;
@@ -131,22 +125,21 @@ server {
     }
 }
 EOF
-ln -sf "$NGINX_SITE" "$NGINX_SITE_ENABLED"
+
 if [[ -f /etc/nginx/sites-enabled/default ]]; then
   rm -f /etc/nginx/sites-enabled/default
 fi
+
 nginx -t
 systemctl enable nginx
 systemctl restart nginx
-
-log "Issuing SSL certificate"
-certbot --nginx --non-interactive --agree-tos --email "$EMAIL" -d "$DOMAIN" -d "www.$DOMAIN" || true
 
 log "Creating default admin account"
 sudo -u "$APP_USER" bash -c "cd '$BACKEND_DIR' && . .venv/bin/activate && flask --app run.py seed-admin" || true
 
 log "Installation completed"
-echo "URL: https://$DOMAIN"
+echo "Panel URL: http://$SERVER_IP"
 echo "Backend service: systemctl status takepanel"
+echo "Nginx service: systemctl status nginx"
 echo "Admin user: admin@takepanel.local"
 echo "Admin password: ChangeMe123! (change it immediately)"
