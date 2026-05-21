@@ -192,7 +192,7 @@ export default function DatabasesPage() {
         <div className="db-list">
           {grants.map((g) => (
             <div key={g.id} className="db-item">
-              <span>{g.username}@{g.host} -> {g.database_name} ({g.privileges})</span>
+              <span>{g.username}@{g.host} → {g.database_name} ({g.privileges})</span>
             </div>
           ))}
         </div>
