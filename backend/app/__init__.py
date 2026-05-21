@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask
 from flask_cors import CORS
 from importlib import import_module
@@ -32,6 +34,9 @@ def create_app(config_class=Config) -> Flask:
 
 def _bootstrap_runtime_state(app: Flask) -> None:
     """Ensure DB schema and default admin exist for first-run installs."""
+    if app.config.get('TESTING') or os.getenv('PYTEST_CURRENT_TEST'):
+        return
+
     if not app.config.get('TAKEPANEL_BOOTSTRAP_DB_ON_START', True):
         return
 

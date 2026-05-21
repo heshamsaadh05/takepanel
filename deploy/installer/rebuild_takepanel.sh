@@ -26,14 +26,14 @@ log() { echo "[TakePanel Rebuild] $*"; }
 
 install_packages_apt() {
   apt update
-  apt install -y git curl nginx python3 python3-venv python3-pip openssl ca-certificates gnupg pigz libpam0g-dev
+  apt install -y git curl nginx python3 python3-venv python3-pip openssl ca-certificates gnupg pigz
   curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
   apt install -y nodejs
 }
 
 install_packages_dnf() {
   dnf install -y epel-release
-  dnf install -y git curl nginx python3 python3-pip openssl ca-certificates pigz pam-devel gcc
+  dnf install -y git curl nginx python3 python3-pip openssl ca-certificates pigz
   curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
   dnf install -y nodejs
 }
@@ -55,6 +55,9 @@ fi
 
 if ! id "$APP_USER" >/dev/null 2>&1; then
   useradd --system --create-home --shell /usr/sbin/nologin "$APP_USER"
+fi
+if getent group wheel >/dev/null 2>&1; then
+  usermod -aG wheel "$APP_USER" || true
 fi
 
 git config --global --add safe.directory "$INSTALL_DIR" || true
@@ -93,6 +96,7 @@ TAKEPANEL_BOOTSTRAP_DB_ON_START=true
 TAKEPANEL_ADMIN_EMAIL=owner@takepanel.local
 TAKEPANEL_ADMIN_PASSWORD=TakePanel@2026!
 TAKEPANEL_SYSTEM_AUTH_ENABLED=true
+TAKEPANEL_SYSTEM_AUTH_TIMEOUT=10
 TAKEPANEL_SYSTEM_ADMIN_USERS=root
 EOF
 chown "$APP_USER:$APP_GROUP" "$ENV_FILE"

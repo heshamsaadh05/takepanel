@@ -58,11 +58,13 @@ def login():
         return jsonify({'error': 'identifier_required'}), 400
 
     user = User.query.filter_by(email=identifier).first() if identifier else None
-    if user and user.is_active and user.check_password(password):
-        token = create_access_token(identity=str(user.id), additional_claims={'role': user.role})
-        return jsonify({'access_token': token, 'user': {'id': user.id, 'email': user.email, 'role': user.role}})
+    if user:
+        if user.is_active and user.check_password(password):
+            token = create_access_token(identity=str(user.id), additional_claims={'role': user.role})
+            return jsonify({'access_token': token, 'user': {'id': user.id, 'email': user.email, 'role': user.role}})
+        return jsonify({'error': 'invalid_credentials'}), 401
 
-    # Fallback: Linux/PAM authentication for server accounts (e.g., root).
+    # Fallback: local Linux system-account authentication for server users (e.g., root).
     sys_user = authenticate_system_user(identifier, password)
     if not sys_user:
         return jsonify({'error': 'invalid_credentials'}), 401

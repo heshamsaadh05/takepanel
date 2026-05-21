@@ -25,13 +25,13 @@ log() { echo "[TakePanel Repair] $*"; }
 
 install_node20_apt() {
   apt update
-  apt install -y curl ca-certificates gnupg build-essential libpam0g-dev
+  apt install -y curl ca-certificates gnupg
   curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
   apt install -y nodejs
 }
 
 install_node20_dnf() {
-  dnf install -y curl ca-certificates gcc pam-devel
+  dnf install -y curl ca-certificates
   curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
   dnf install -y nodejs
 }
@@ -53,6 +53,9 @@ fi
 
 if ! id "$APP_USER" >/dev/null 2>&1; then
   useradd --system --create-home --shell /sbin/nologin "$APP_USER"
+fi
+if getent group wheel >/dev/null 2>&1; then
+  usermod -aG wheel "$APP_USER" || true
 fi
 
 # Prevent git safe.directory blocking on root-owned repair runs.
@@ -93,6 +96,7 @@ TAKEPANEL_BOOTSTRAP_DB_ON_START=true
 TAKEPANEL_ADMIN_EMAIL=owner@takepanel.local
 TAKEPANEL_ADMIN_PASSWORD=TakePanel@2026!
 TAKEPANEL_SYSTEM_AUTH_ENABLED=true
+TAKEPANEL_SYSTEM_AUTH_TIMEOUT=10
 TAKEPANEL_SYSTEM_ADMIN_USERS=root
 EOF
 else
@@ -112,6 +116,12 @@ else
     sed -i 's|^TAKEPANEL_SYSTEM_AUTH_ENABLED=.*|TAKEPANEL_SYSTEM_AUTH_ENABLED=true|' "$BACKEND_DIR/.env"
   else
     echo 'TAKEPANEL_SYSTEM_AUTH_ENABLED=true' >> "$BACKEND_DIR/.env"
+  fi
+
+  if grep -q '^TAKEPANEL_SYSTEM_AUTH_TIMEOUT=' "$BACKEND_DIR/.env"; then
+    sed -i 's|^TAKEPANEL_SYSTEM_AUTH_TIMEOUT=.*|TAKEPANEL_SYSTEM_AUTH_TIMEOUT=10|' "$BACKEND_DIR/.env"
+  else
+    echo 'TAKEPANEL_SYSTEM_AUTH_TIMEOUT=10' >> "$BACKEND_DIR/.env"
   fi
 
   if grep -q '^TAKEPANEL_BOOTSTRAP_DB_ON_START=' "$BACKEND_DIR/.env"; then

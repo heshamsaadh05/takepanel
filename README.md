@@ -35,6 +35,7 @@ After install:
 Default login:
 - Username: `root`
 - Password: the same password used for SSH/server login
+- Authentication uses the local Linux `su` path from the backend service
 
 ## Optional Domain + SSL Later
 You can later move from IP mode to domain + Let's Encrypt from inside panel scripts/API.

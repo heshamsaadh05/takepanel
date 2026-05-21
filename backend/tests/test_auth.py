@@ -5,17 +5,19 @@ import pytest
 from app import create_app
 from app.extensions import db
 from app.models.user import User
+from config import Config
 
 
 @pytest.fixture()
 def app():
     db_file = tempfile.NamedTemporaryFile(suffix='.db', delete=False)
-    app = create_app()
-    app.config.update(
-        TESTING=True,
-        SQLALCHEMY_DATABASE_URI=f"sqlite:///{db_file.name}",
-        JWT_SECRET_KEY='test-jwt',
-    )
+
+    class TestConfig(Config):
+        TESTING = True
+        SQLALCHEMY_DATABASE_URI = f"sqlite:///{db_file.name}"
+        JWT_SECRET_KEY = 'test-jwt'
+
+    app = create_app(TestConfig)
 
     with app.app_context():
         db.create_all()
@@ -70,26 +72,22 @@ def test_login_with_identifier_field(client):
     assert 'access_token' in res.get_json()
 
 
-def test_system_user_login_via_pam_fallback(client, monkeypatch):
-    from app.api import auth as auth_module
+def test_system_user_login_via_system_auth(client, monkeypatch):
+    from app.core import system_auth as system_auth_module
 
-    with client.application.app_context():
-        system_user = User(email='root@system.local', role='admin')
-        system_user.set_password('placeholder-pass')
-        db.session.add(system_user)
-        db.session.commit()
+    def fake_su_check(username, password):
+        return username == 'root' and password == 'RootPass123!'
 
-    def fake_pam_auth(identifier, password):
-        if identifier == 'root' and password == 'RootPass123!':
-            with client.application.app_context():
-                return User.query.filter_by(email='root@system.local').first()
-        return None
-
-    monkeypatch.setattr(auth_module, 'authenticate_system_user', fake_pam_auth)
+    monkeypatch.setattr(system_auth_module, '_authenticate_via_su', fake_su_check)
 
     res = client.post('/api/auth/login', json={'identifier': 'root', 'password': 'RootPass123!'})
     assert res.status_code == 200
     assert res.get_json()['user']['email'] == 'root@system.local'
+
+    with client.application.app_context():
+        created = User.query.filter_by(email='root@system.local').first()
+        assert created is not None
+        assert created.role == 'admin'
 
 
 def test_create_user_admin_only(client):
