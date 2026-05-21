@@ -116,7 +116,7 @@ WantedBy=multi-user.target
 EOF
 
 log "Initializing DB and admin account"
-sudo -u "$APP_USER" bash -c "cd '$BACKEND_DIR' && . .venv/bin/activate && python - <<'PY'
+sudo -u "$APP_USER" bash -c "cd '$BACKEND_DIR' && . .venv/bin/activate && set -a && . ./.env && set +a && python - <<'PY'
 from app import create_app
 from app.extensions import db
 from app.models.user import User
