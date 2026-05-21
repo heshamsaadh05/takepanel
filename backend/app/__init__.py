@@ -24,5 +24,36 @@ def create_app(config_class=Config) -> Flask:
         return db.session.query(TokenBlocklist.id).filter_by(jti=jti).scalar() is not None
 
     register_routes(app)
+    _bootstrap_runtime_state(app)
 
     return app
+
+
+def _bootstrap_runtime_state(app: Flask) -> None:
+    """Ensure DB schema and default admin exist for first-run installs."""
+    if not app.config.get('TAKEPANEL_BOOTSTRAP_DB_ON_START', True):
+        return
+
+    try:
+        with app.app_context():
+            # Import model registry so create_all sees every table.
+            import app.models  # noqa: F401
+            from app.models.user import User
+
+            db.create_all()
+
+            admin_email = app.config.get('TAKEPANEL_ADMIN_EMAIL', 'admin@takepanel.local').lower()
+            admin_password = app.config.get('TAKEPANEL_ADMIN_PASSWORD', 'ChangeMe123!')
+
+            existing = User.query.filter_by(email=admin_email).first()
+            if not existing:
+                admin = User(email=admin_email, role='admin', is_active=True)
+                admin.set_password(admin_password)
+                db.session.add(admin)
+                db.session.commit()
+            elif not existing.is_active:
+                existing.is_active = True
+                db.session.commit()
+    except Exception:
+        # Do not crash app startup; keep the API bootable for diagnostics.
+        app.logger.exception('Runtime bootstrap failed.')

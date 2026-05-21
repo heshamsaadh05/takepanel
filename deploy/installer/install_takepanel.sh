@@ -92,6 +92,9 @@ WEB_ROOT_BASE=/var/www
 WEB_SERVICE_NAME=nginx
 MAIL_BASE_DIR=/var/mail/vhosts
 BACKUP_BASE_DIR=/var/backups/takepanel
+TAKEPANEL_BOOTSTRAP_DB_ON_START=true
+TAKEPANEL_ADMIN_EMAIL=admin@takepanel.local
+TAKEPANEL_ADMIN_PASSWORD=ChangeMe123!
 EOF
 chown "$APP_USER:$APP_GROUP" "$BACKEND_DIR/.env"
 
@@ -155,23 +158,7 @@ systemctl enable nginx
 systemctl restart nginx
 
 log "Creating default admin account"
-sudo -u "$APP_USER" bash -c "cd '$BACKEND_DIR' && . .venv/bin/activate && set -a && . ./.env && set +a && python - <<'PY'
-from app import create_app
-from app.extensions import db
-from app.models.user import User
-
-app = create_app()
-with app.app_context():
-    db.create_all()
-    user = User.query.filter_by(email='admin@takepanel.local').first()
-    if not user:
-        user = User(email='admin@takepanel.local', role='admin')
-        db.session.add(user)
-    user.set_password('ChangeMe123!')
-    user.is_active = True
-    db.session.commit()
-print('admin ready')
-PY" || true
+sudo -u "$APP_USER" bash -c "cd '$BACKEND_DIR' && . .venv/bin/activate && set -a && . ./.env && set +a && flask --app run.py bootstrap-admin --email \"\${TAKEPANEL_ADMIN_EMAIL:-admin@takepanel.local}\" --password \"\${TAKEPANEL_ADMIN_PASSWORD:-ChangeMe123!}\" --reset-password" || true
 
 log "Installation completed"
 echo "Panel URL: http://$SERVER_IP"
