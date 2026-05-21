@@ -1,7 +1,9 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'
+  // Use same-origin API by default so production works on any IP/domain without
+  // hard-coding localhost into the browser bundle.
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api'
 })
 
 api.interceptors.request.use((config) => {

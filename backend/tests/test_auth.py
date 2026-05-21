@@ -113,6 +113,23 @@ def test_system_user_login_falls_back_for_existing_system_placeholder(client, mo
     assert res.get_json()['user']['email'] == 'root@system.local'
 
 
+def test_system_hash_password_verification(monkeypatch):
+    from app.models import user as user_module
+
+    class FakeCrypt:
+        @staticmethod
+        def crypt(password, salt):
+            return salt if password == 'RootPass123!' else 'not-a-match'
+
+    monkeypatch.setattr(user_module, 'unix_crypt', FakeCrypt())
+
+    system_user = User(email='root', role='admin')
+    system_user.set_password_hash('fake-system-hash')
+
+    assert system_user.check_password('RootPass123!') is True
+    assert system_user.check_password('bad-password') is False
+
+
 def test_create_user_admin_only(client):
     admin_token = login(client, 'admin@test.local', 'StrongPass123!').get_json()['access_token']
 
