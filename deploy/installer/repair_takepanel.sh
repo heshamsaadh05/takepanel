@@ -19,6 +19,7 @@ APP_PORT="8000"
 SERVICE_FILE="/etc/systemd/system/takepanel.service"
 NGINX_SITE="/etc/nginx/conf.d/takepanel.conf"
 SERVER_IP="$(hostname -I | awk '{print $1}')"
+BACKUP_SUFFIX="$(date +%Y%m%d_%H%M%S)"
 
 log() { echo "[TakePanel Repair] $*"; }
 
@@ -54,11 +55,20 @@ if ! id "$APP_USER" >/dev/null 2>&1; then
   useradd --system --create-home --shell /sbin/nologin "$APP_USER"
 fi
 
+# Prevent git safe.directory blocking on root-owned repair runs.
+git config --global --add safe.directory "$INSTALL_DIR" || true
+
 if [[ ! -d "$INSTALL_DIR/.git" ]]; then
-  rm -rf "$INSTALL_DIR"
+  if [[ -d "$INSTALL_DIR" ]]; then
+    mv "$INSTALL_DIR" "${INSTALL_DIR}.bak.${BACKUP_SUFFIX}"
+  fi
   git clone "$REPO_URL" "$INSTALL_DIR"
 else
-  git -C "$INSTALL_DIR" pull --ff-only
+  if ! git -C "$INSTALL_DIR" pull --ff-only; then
+    log "git pull failed, falling back to fresh clone"
+    mv "$INSTALL_DIR" "${INSTALL_DIR}.bak.${BACKUP_SUFFIX}"
+    git clone "$REPO_URL" "$INSTALL_DIR"
+  fi
 fi
 
 chown -R "$APP_USER:$APP_GROUP" "$INSTALL_DIR"

@@ -19,19 +19,20 @@ APP_GROUP="takepanel"
 APP_PORT="8000"
 NGINX_SITE="/etc/nginx/conf.d/takepanel.conf"
 SERVER_IP="$(hostname -I | awk '{print $1}')"
+BACKUP_SUFFIX="$(date +%Y%m%d_%H%M%S)"
 
 log() { echo "[TakePanel] $*"; }
 
 install_packages_apt() {
   apt update
-  apt install -y git curl nginx python3 python3-venv python3-pip openssl ca-certificates gnupg
+  apt install -y git curl nginx python3 python3-venv python3-pip openssl ca-certificates gnupg pigz
   curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
   apt install -y nodejs
 }
 
 install_packages_dnf() {
   dnf install -y epel-release
-  dnf install -y git curl nginx python3 python3-pip openssl ca-certificates
+  dnf install -y git curl nginx python3 python3-pip openssl ca-certificates pigz
   curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
   dnf install -y nodejs
 }
@@ -58,10 +59,19 @@ if ! id "$APP_USER" >/dev/null 2>&1; then
 fi
 
 log "Cloning/Updating project"
+# Prevent git safe.directory blocking on root-owned install runs.
+git config --global --add safe.directory "$INSTALL_DIR" || true
+
 if [[ -d "$INSTALL_DIR/.git" ]]; then
-  git -C "$INSTALL_DIR" pull --ff-only || true
+  if ! git -C "$INSTALL_DIR" pull --ff-only; then
+    log "git pull failed, falling back to fresh clone"
+    mv "$INSTALL_DIR" "${INSTALL_DIR}.bak.${BACKUP_SUFFIX}"
+    git clone "$REPO_URL" "$INSTALL_DIR"
+  fi
 else
-  rm -rf "$INSTALL_DIR"
+  if [[ -d "$INSTALL_DIR" ]]; then
+    mv "$INSTALL_DIR" "${INSTALL_DIR}.bak.${BACKUP_SUFFIX}"
+  fi
   git clone "$REPO_URL" "$INSTALL_DIR"
 fi
 
@@ -145,7 +155,23 @@ systemctl enable nginx
 systemctl restart nginx
 
 log "Creating default admin account"
-sudo -u "$APP_USER" bash -c "cd '$BACKEND_DIR' && . .venv/bin/activate && flask --app run.py seed-admin" || true
+sudo -u "$APP_USER" bash -c "cd '$BACKEND_DIR' && . .venv/bin/activate && python - <<'PY'
+from app import create_app
+from app.extensions import db
+from app.models.user import User
+
+app = create_app()
+with app.app_context():
+    db.create_all()
+    user = User.query.filter_by(email='admin@takepanel.local').first()
+    if not user:
+        user = User(email='admin@takepanel.local', role='admin')
+        db.session.add(user)
+    user.set_password('ChangeMe123!')
+    user.is_active = True
+    db.session.commit()
+print('admin ready')
+PY" || true
 
 log "Installation completed"
 echo "Panel URL: http://$SERVER_IP"
