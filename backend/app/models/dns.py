@@ -1,4 +1,4 @@
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 
 from app.extensions import db
 
@@ -10,7 +10,7 @@ class ManagedDNSZone(db.Model):
     domain = db.Column(db.String(255), unique=True, nullable=False, index=True)
     provider = db.Column(db.String(32), nullable=False, default='bind')
     is_active = db.Column(db.Boolean, nullable=False, default=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class ManagedDNSRecord(db.Model):
@@ -23,4 +23,4 @@ class ManagedDNSRecord(db.Model):
     value = db.Column(db.String(1024), nullable=False)
     ttl = db.Column(db.Integer, nullable=False, default=3600)
     priority = db.Column(db.Integer, nullable=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)

@@ -1,4 +1,4 @@
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 
 from app.extensions import db
 
@@ -12,7 +12,7 @@ class ManagedBackup(db.Model):
     backup_type = db.Column(db.String(32), nullable=False, default='full')
     status = db.Column(db.String(32), nullable=False, default='completed')
     size_bytes = db.Column(db.BigInteger, nullable=False, default=0)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class BackupSchedule(db.Model):
@@ -21,5 +21,5 @@ class BackupSchedule(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cron_expression = db.Column(db.String(64), nullable=False)
     is_enabled = db.Column(db.Boolean, nullable=False, default=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), nullable=False)
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)

@@ -1,4 +1,4 @@
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 
 from app.extensions import db
 
@@ -12,4 +12,4 @@ class ManagedFTPAccount(db.Model):
     home_directory = db.Column(db.String(512), nullable=False)
     permissions = db.Column(db.String(16), nullable=False, default='rw')
     is_enabled = db.Column(db.Boolean, nullable=False, default=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)

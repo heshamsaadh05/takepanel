@@ -1,6 +1,7 @@
 import logging
 import os
-from datetime import UTC, datetime
+import ipaddress
+from datetime import datetime, timezone
 from pathlib import Path
 
 from flask import Blueprint, jsonify, request
@@ -66,11 +67,15 @@ BACKUP_BASE_DIR = os.getenv('BACKUP_BASE_DIR', '/var/backups/takepanel')
 
 def _is_valid_dns_record_value(record_type: str, value: str) -> bool:
     if record_type == 'A':
-        parts = value.split('.')
-        if len(parts) != 4:
-            return False
         try:
-            return all(0 <= int(part) <= 255 for part in parts)
+            ipaddress.IPv4Address(value)
+            return True
+        except ValueError:
+            return False
+    if record_type == 'AAAA':
+        try:
+            ipaddress.IPv6Address(value)
+            return True
         except ValueError:
             return False
     if record_type == 'CNAME':
@@ -1007,7 +1012,7 @@ def run_backup():
 
     # Support mocked command output in development/test environments.
     if not metadata and output.startswith('MOCK:'):
-        now = datetime.now(UTC).strftime('%Y%m%d_%H%M%S')
+        now = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
         metadata = {
             'BACKUP_NAME': f'takepanel_full_{now}.tar.gz',
             'BACKUP_PATH': f'{BACKUP_BASE_DIR}/takepanel_full_{now}.tar.gz',
@@ -1104,7 +1109,7 @@ def set_backup_schedule():
     else:
         schedule.cron_expression = cron_expression
         schedule.is_enabled = data['is_enabled']
-        schedule.updated_at = datetime.now(UTC)
+        schedule.updated_at = datetime.now(timezone.utc)
     db.session.commit()
 
     return jsonify({'message': 'schedule_updated', 'cron_expression': schedule.cron_expression})

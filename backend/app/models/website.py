@@ -1,4 +1,4 @@
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 
 from app.extensions import db
 
@@ -11,4 +11,4 @@ class Website(db.Model):
     web_root = db.Column(db.String(512), nullable=False)
     server_type = db.Column(db.String(16), nullable=False, default='nginx')
     status = db.Column(db.String(16), nullable=False, default='stopped')
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
