@@ -1,4 +1,5 @@
 import click
+from importlib import import_module
 
 from app import create_app
 from app.extensions import db
@@ -6,13 +7,9 @@ from app.extensions import db
 app = create_app()
 
 
-@app.cli.command('bootstrap-admin')
-@click.option('--email', default='admin@takepanel.local', show_default=True, help='Admin email to create/update.')
-@click.option('--password', default='ChangeMe123!', show_default=True, help='Admin password.')
-@click.option('--reset-password', is_flag=True, help='Force password reset for existing admin user.')
-def bootstrap_admin(email: str, password: str, reset_password: bool) -> None:
+def _bootstrap_admin_impl(email: str, password: str, reset_password: bool) -> None:
     """Create DB tables and ensure an admin user exists."""
-    import app.models  # noqa: F401
+    import_module('app.models')
     from app.models.user import User
 
     db.create_all()
@@ -39,7 +36,15 @@ def bootstrap_admin(email: str, password: str, reset_password: bool) -> None:
     print(f'Created admin user: {email} / {password}')
 
 
+@app.cli.command('bootstrap-admin')
+@click.option('--email', default='owner@takepanel.local', show_default=True, help='Admin email to create/update.')
+@click.option('--password', default='TakePanel@2026!', show_default=True, help='Admin password.')
+@click.option('--reset-password', is_flag=True, help='Force password reset for existing admin user.')
+def bootstrap_admin(email: str, password: str, reset_password: bool) -> None:
+    _bootstrap_admin_impl(email, password, reset_password)
+
+
 @app.cli.command('seed-admin')
 def seed_admin_compat() -> None:
     """Backward-compatible alias for legacy scripts."""
-    bootstrap_admin('admin@takepanel.local', 'ChangeMe123!', False)
+    _bootstrap_admin_impl('owner@takepanel.local', 'TakePanel@2026!', False)

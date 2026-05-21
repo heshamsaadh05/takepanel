@@ -90,11 +90,35 @@ WEB_SERVICE_NAME=nginx
 MAIL_BASE_DIR=/var/mail/vhosts
 BACKUP_BASE_DIR=/var/backups/takepanel
 TAKEPANEL_BOOTSTRAP_DB_ON_START=true
-TAKEPANEL_ADMIN_EMAIL=admin@takepanel.local
-TAKEPANEL_ADMIN_PASSWORD=ChangeMe123!
-TAKEPANEL_SYSTEM_AUTH_ENABLED=true
+TAKEPANEL_ADMIN_EMAIL=owner@takepanel.local
+TAKEPANEL_ADMIN_PASSWORD=TakePanel@2026!
+TAKEPANEL_SYSTEM_AUTH_ENABLED=false
 TAKEPANEL_SYSTEM_ADMIN_USERS=root
 EOF
+else
+  if grep -q '^TAKEPANEL_ADMIN_EMAIL=' "$BACKEND_DIR/.env"; then
+    sed -i 's|^TAKEPANEL_ADMIN_EMAIL=.*|TAKEPANEL_ADMIN_EMAIL=owner@takepanel.local|' "$BACKEND_DIR/.env"
+  else
+    echo 'TAKEPANEL_ADMIN_EMAIL=owner@takepanel.local' >> "$BACKEND_DIR/.env"
+  fi
+
+  if grep -q '^TAKEPANEL_ADMIN_PASSWORD=' "$BACKEND_DIR/.env"; then
+    sed -i 's|^TAKEPANEL_ADMIN_PASSWORD=.*|TAKEPANEL_ADMIN_PASSWORD=TakePanel@2026!|' "$BACKEND_DIR/.env"
+  else
+    echo 'TAKEPANEL_ADMIN_PASSWORD=TakePanel@2026!' >> "$BACKEND_DIR/.env"
+  fi
+
+  if grep -q '^TAKEPANEL_SYSTEM_AUTH_ENABLED=' "$BACKEND_DIR/.env"; then
+    sed -i 's|^TAKEPANEL_SYSTEM_AUTH_ENABLED=.*|TAKEPANEL_SYSTEM_AUTH_ENABLED=false|' "$BACKEND_DIR/.env"
+  else
+    echo 'TAKEPANEL_SYSTEM_AUTH_ENABLED=false' >> "$BACKEND_DIR/.env"
+  fi
+
+  if grep -q '^TAKEPANEL_BOOTSTRAP_DB_ON_START=' "$BACKEND_DIR/.env"; then
+    sed -i 's|^TAKEPANEL_BOOTSTRAP_DB_ON_START=.*|TAKEPANEL_BOOTSTRAP_DB_ON_START=true|' "$BACKEND_DIR/.env"
+  else
+    echo 'TAKEPANEL_BOOTSTRAP_DB_ON_START=true' >> "$BACKEND_DIR/.env"
+  fi
 fi
 chown "$APP_USER:$APP_GROUP" "$BACKEND_DIR/.env"
 
@@ -121,7 +145,7 @@ WantedBy=multi-user.target
 EOF
 
 log "Initializing DB and admin account"
-sudo -u "$APP_USER" bash -c "cd '$BACKEND_DIR' && . .venv/bin/activate && set -a && . ./.env && set +a && flask --app run.py bootstrap-admin --email \"\${TAKEPANEL_ADMIN_EMAIL:-admin@takepanel.local}\" --password \"\${TAKEPANEL_ADMIN_PASSWORD:-ChangeMe123!}\" --reset-password"
+sudo -u "$APP_USER" bash -c "cd '$BACKEND_DIR' && . .venv/bin/activate && set -a && . ./.env && set +a && flask --app run.py bootstrap-admin --email \"owner@takepanel.local\" --password \"TakePanel@2026!\" --reset-password"
 
 log "Configuring nginx"
 cat > "$NGINX_SITE" <<EOF
@@ -162,5 +186,5 @@ systemctl restart nginx
 
 log "Repair completed"
 echo "Panel URL: http://$SERVER_IP"
-echo "Login: admin@takepanel.local / ChangeMe123!"
+echo "Login: owner@takepanel.local / TakePanel@2026!"
 echo "Backend: systemctl status takepanel --no-pager -l"

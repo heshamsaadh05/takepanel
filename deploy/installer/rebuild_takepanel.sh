@@ -78,10 +78,9 @@ log "Recreating backend virtualenv"
 sudo -u "$APP_USER" bash -c "cd '$BACKEND_DIR' && rm -rf .venv && python3 -m venv .venv"
 sudo -u "$APP_USER" bash -c "cd '$BACKEND_DIR' && . .venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt"
 
-if [[ ! -f "$ENV_FILE" ]]; then
-  SECRET_KEY="$(openssl rand -hex 32)"
-  JWT_SECRET_KEY="$(openssl rand -hex 32)"
-  cat > "$ENV_FILE" <<EOF
+SECRET_KEY="$(openssl rand -hex 32)"
+JWT_SECRET_KEY="$(openssl rand -hex 32)"
+cat > "$ENV_FILE" <<EOF
 SECRET_KEY=$SECRET_KEY
 JWT_SECRET_KEY=$JWT_SECRET_KEY
 DATABASE_URL=sqlite:///$BACKEND_DIR/takepanel.db
@@ -91,18 +90,11 @@ WEB_SERVICE_NAME=nginx
 MAIL_BASE_DIR=/var/mail/vhosts
 BACKUP_BASE_DIR=/var/backups/takepanel
 TAKEPANEL_BOOTSTRAP_DB_ON_START=true
-TAKEPANEL_ADMIN_EMAIL=admin@takepanel.local
-TAKEPANEL_ADMIN_PASSWORD=ChangeMe123!
-TAKEPANEL_SYSTEM_AUTH_ENABLED=true
+TAKEPANEL_ADMIN_EMAIL=owner@takepanel.local
+TAKEPANEL_ADMIN_PASSWORD=TakePanel@2026!
+TAKEPANEL_SYSTEM_AUTH_ENABLED=false
 TAKEPANEL_SYSTEM_ADMIN_USERS=root
 EOF
-else
-  grep -q '^TAKEPANEL_BOOTSTRAP_DB_ON_START=' "$ENV_FILE" || echo 'TAKEPANEL_BOOTSTRAP_DB_ON_START=true' >> "$ENV_FILE"
-  grep -q '^TAKEPANEL_ADMIN_EMAIL=' "$ENV_FILE" || echo 'TAKEPANEL_ADMIN_EMAIL=admin@takepanel.local' >> "$ENV_FILE"
-  grep -q '^TAKEPANEL_ADMIN_PASSWORD=' "$ENV_FILE" || echo 'TAKEPANEL_ADMIN_PASSWORD=ChangeMe123!' >> "$ENV_FILE"
-  grep -q '^TAKEPANEL_SYSTEM_AUTH_ENABLED=' "$ENV_FILE" || echo 'TAKEPANEL_SYSTEM_AUTH_ENABLED=true' >> "$ENV_FILE"
-  grep -q '^TAKEPANEL_SYSTEM_ADMIN_USERS=' "$ENV_FILE" || echo 'TAKEPANEL_SYSTEM_ADMIN_USERS=root' >> "$ENV_FILE"
-fi
 chown "$APP_USER:$APP_GROUP" "$ENV_FILE"
 
 log "Rebuilding frontend"
@@ -128,27 +120,7 @@ WantedBy=multi-user.target
 EOF
 
 log "Ensuring DB tables + admin login"
-sudo -u "$APP_USER" bash -c "cd '$BACKEND_DIR' && . .venv/bin/activate && set -a && . ./.env && set +a && python - <<'PY'
-from app import create_app
-from app.extensions import db
-from app.models.user import User
-import os
-
-app = create_app()
-with app.app_context():
-    db.create_all()
-    email = os.getenv('TAKEPANEL_ADMIN_EMAIL', 'admin@takepanel.local').lower()
-    password = os.getenv('TAKEPANEL_ADMIN_PASSWORD', 'ChangeMe123!')
-    u = User.query.filter_by(email=email).first()
-    if not u:
-        u = User(email=email, role='admin')
-        db.session.add(u)
-    u.role = 'admin'
-    u.is_active = True
-    u.set_password(password)
-    db.session.commit()
-print('admin bootstrap ok')
-PY"
+sudo -u "$APP_USER" bash -c "cd '$BACKEND_DIR' && . .venv/bin/activate && set -a && . ./.env && set +a && flask --app run.py bootstrap-admin --email 'owner@takepanel.local' --password 'TakePanel@2026!' --reset-password"
 
 systemctl daemon-reload
 systemctl enable takepanel
@@ -161,6 +133,6 @@ curl -sS "http://127.0.0.1:$APP_PORT/api/health" || true
 
 log "Rebuild completed"
 echo "Panel URL: http://$SERVER_IP/login"
-echo "Panel admin: admin@takepanel.local / ChangeMe123!"
-echo "Server login: root / <your server password>"
+echo "Panel admin: owner@takepanel.local / TakePanel@2026!"
+echo "Server login: disabled by default"
 echo "Check backend: systemctl status takepanel --no-pager -l"
