@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_cors import CORS
+from importlib import import_module
 
 from config import Config
 from app.api.routes import register_routes
@@ -37,7 +38,7 @@ def _bootstrap_runtime_state(app: Flask) -> None:
     try:
         with app.app_context():
             # Import model registry so create_all sees every table.
-            import app.models  # noqa: F401
+            import_module('app.models')
             from app.models.user import User
 
             db.create_all()
