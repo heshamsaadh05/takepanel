@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext'
 import MainLayout from './layouts/MainLayout'
 import BackupsPage from './pages/BackupsPage'
 import DashboardPage from './pages/DashboardPage'
+import AccountFunctionsPage from './pages/AccountFunctionsPage'
 import DatabasesPage from './pages/DatabasesPage'
 import DNSPage from './pages/DNSPage'
 import EmailPage from './pages/EmailPage'
@@ -21,6 +22,7 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<MainLayout />}>
               <Route path="/" element={<DashboardPage />} />
+              <Route path="/account-functions" element={<AccountFunctionsPage />} />
               <Route path="/sites" element={<SitesPage />} />
               <Route path="/databases" element={<DatabasesPage />} />
               <Route path="/email" element={<EmailPage />} />

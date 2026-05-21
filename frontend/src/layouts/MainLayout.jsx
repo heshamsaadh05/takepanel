@@ -13,6 +13,7 @@ const navGroups = [
   {
     title: 'Account Functions',
     items: [
+      { to: '/account-functions', label: 'Account Functions', meta: 'Create and manage accounts' },
       { to: '/sites', label: 'Websites', meta: 'Domains and vhosts' },
       { to: '/databases', label: 'Databases', meta: 'MySQL / MariaDB' },
       { to: '/email', label: 'Email', meta: 'Postfix + Dovecot' },

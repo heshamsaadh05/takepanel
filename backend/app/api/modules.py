@@ -13,6 +13,7 @@ from app.models.backup import BackupSchedule, ManagedBackup
 from app.models.database import ManagedDatabase, ManagedDatabaseGrant, ManagedDatabaseUser
 from app.models.dns import ManagedDNSRecord, ManagedDNSZone
 from app.models.email import ManagedEmailAccount
+from app.models.hosting_account import ManagedHostingAccount
 from app.models.ftp import ManagedFTPAccount
 from app.models.website import Website
 from app.schemas.dns import (
@@ -48,6 +49,10 @@ from app.schemas.monitoring import (
     MonitoringThresholdSchema,
     SSLSetupSchema,
     validate_payload as validate_monitoring_payload,
+)
+from app.schemas.hosting_accounts import (
+    HostingAccountCreateSchema,
+    validate_payload as validate_hosting_payload,
 )
 from app.schemas.websites import WebsiteCreateSchema, validate_website_payload
 from app.services.system_service import control_web_service, run_command
@@ -249,6 +254,174 @@ def stop_site(site_id: int):
     site.status = 'stopped'
     db.session.commit()
     return jsonify({'message': 'site_stopped', 'service_output': output})
+
+
+@modules_bp.get('/hosting/accounts')
+@jwt_required()
+def list_hosting_accounts():
+    accounts = ManagedHostingAccount.query.order_by(ManagedHostingAccount.id.desc()).all()
+    return jsonify(
+        {
+            'items': [
+                {
+                    'id': account.id,
+                    'domain': account.domain,
+                    'username': account.username,
+                    'email': account.contact_email,
+                    'package_name': account.package_name,
+                    'select_options_manually': account.select_options_manually,
+                    'server_type': account.server_type,
+                    'cgi_access': account.cgi_access,
+                    'cpanel_theme': account.cpanel_theme,
+                    'locale': account.locale,
+                    'enable_apache_spamassassin': account.enable_apache_spamassassin,
+                    'enable_spam_box': account.enable_spam_box,
+                    'mail_routing': account.mail_routing,
+                    'shell_access': account.shell_access,
+                    'dns_enabled': account.dns_enabled,
+                    'web_root': account.web_root,
+                    'home_directory': account.home_directory,
+                    'status': account.status,
+                    'created_at': account.created_at.isoformat(),
+                }
+                for account in accounts
+            ]
+        }
+    )
+
+
+@modules_bp.post('/hosting/accounts')
+@jwt_required()
+@require_roles('admin', 'reseller')
+def create_hosting_account():
+    payload = request.get_json(silent=True) or {}
+    data, errors = validate_hosting_payload(HostingAccountCreateSchema, payload)
+    if errors:
+        return jsonify({'errors': errors}), 400
+
+    if data['password'] != data['confirm_password']:
+        return jsonify({'errors': {'confirm_password': ['passwords_do_not_match']}}), 400
+
+    domain = data['domain'].strip().lower()
+    username = data['username'].strip().lower()
+    contact_email = data['email'].strip().lower()
+
+    if Website.query.filter_by(domain=domain).first() or ManagedHostingAccount.query.filter_by(domain=domain).first():
+        return jsonify({'error': 'domain_already_exists'}), 409
+    if ManagedFTPAccount.query.filter_by(username=username).first() or ManagedHostingAccount.query.filter_by(username=username).first():
+        return jsonify({'error': 'username_already_exists'}), 409
+
+    web_root = str(Path(WEB_ROOT_BASE) / domain / 'public')
+    home_directory = str(Path(WEB_ROOT_BASE) / domain)
+
+    website = Website(domain=domain, web_root=web_root, server_type=data['server_type'], status='stopped')
+    hosting_account = ManagedHostingAccount(
+        domain=domain,
+        username=username,
+        contact_email=contact_email,
+        package_name=data['package_name'],
+        select_options_manually=data['select_options_manually'],
+        server_type=data['server_type'],
+        cgi_access=data['cgi_access'],
+        cpanel_theme=data['cpanel_theme'],
+        locale=data['locale'],
+        enable_apache_spamassassin=data['enable_apache_spamassassin'],
+        enable_spam_box=data['enable_spam_box'],
+        mail_routing=data['mail_routing'],
+        shell_access=data['shell_access'],
+        dns_enabled=data['dns_enabled'],
+        web_root=web_root,
+        home_directory=home_directory,
+        status='provisioning',
+    )
+
+    try:
+        db.session.add_all([website, hosting_account])
+        db.session.flush()
+    except Exception:
+        db.session.rollback()
+        logger.exception('Hosting account database bootstrap failed for domain=%s username=%s', domain, username)
+        return jsonify({'error': 'hosting_account_bootstrap_failed'}), 500
+
+    created, output = run_command(['bash', 'scripts/create_website.sh', domain, web_root])
+    if not created:
+        db.session.rollback()
+        logger.exception('Hosting account website provisioning failed for domain=%s output=%s', domain, output)
+        return jsonify({'error': 'provision_failed', 'details': output}), 500
+
+    ftp_protocol = 'vsftpd'
+    ftp_created, ftp_output = run_command(
+        ['bash', 'scripts/ftp_user_create.sh', username, data['password'], ftp_protocol, home_directory, 'rw']
+    )
+    if not ftp_created:
+        run_command(['bash', 'scripts/remove_website.sh', domain, web_root])
+        db.session.rollback()
+        logger.exception('Hosting account FTP provisioning failed for username=%s output=%s', username, ftp_output)
+        return jsonify({'error': 'ftp_provision_failed', 'details': ftp_output}), 500
+
+    ftp_account = ManagedFTPAccount(
+        username=username,
+        protocol=ftp_protocol,
+        home_directory=home_directory,
+        permissions='rw',
+        is_enabled=True,
+    )
+    hosting_account.status = 'active'
+
+    db.session.add(ftp_account)
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        run_command(['bash', 'scripts/ftp_user_delete.sh', username, ftp_protocol, home_directory])
+        run_command(['bash', 'scripts/remove_website.sh', domain, web_root])
+        logger.exception('Hosting account commit failed for domain=%s username=%s', domain, username)
+        return jsonify({'error': 'hosting_account_commit_failed'}), 500
+
+    return (
+        jsonify(
+            {
+                'id': hosting_account.id,
+                'domain': hosting_account.domain,
+                'username': hosting_account.username,
+                'email': hosting_account.contact_email,
+                'package_name': hosting_account.package_name,
+                'select_options_manually': hosting_account.select_options_manually,
+                'server_type': hosting_account.server_type,
+                'status': hosting_account.status,
+                'web_root': hosting_account.web_root,
+                'home_directory': hosting_account.home_directory,
+            }
+        ),
+        201,
+    )
+
+
+@modules_bp.delete('/hosting/accounts/<int:account_id>')
+@jwt_required()
+@require_roles('admin', 'reseller')
+def delete_hosting_account(account_id: int):
+    account = db.session.get(ManagedHostingAccount, account_id)
+    if not account:
+        return jsonify({'error': 'hosting_account_not_found'}), 404
+
+    ftp_deleted, ftp_output = run_command(
+        ['bash', 'scripts/ftp_user_delete.sh', account.username, 'vsftpd', account.home_directory]
+    )
+    if not ftp_deleted:
+        logger.exception('Hosting account FTP removal failed username=%s output=%s', account.username, ftp_output)
+        return jsonify({'error': 'ftp_delete_failed', 'details': ftp_output}), 500
+
+    site_deleted, site_output = run_command(['bash', 'scripts/remove_website.sh', account.domain, account.web_root])
+    if not site_deleted:
+        logger.exception('Hosting account website removal failed domain=%s output=%s', account.domain, site_output)
+        return jsonify({'error': 'website_delete_failed', 'details': site_output}), 500
+
+    Website.query.filter_by(domain=account.domain).delete()
+    ManagedFTPAccount.query.filter_by(username=account.username).delete()
+    db.session.delete(account)
+    db.session.commit()
+    return jsonify({'message': 'deleted'})
 
 
 @modules_bp.post('/web/vhosts/generate')

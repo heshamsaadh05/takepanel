@@ -3,6 +3,7 @@ from app.models.backup import BackupSchedule, ManagedBackup
 from app.models.database import ManagedDatabase, ManagedDatabaseGrant, ManagedDatabaseUser
 from app.models.dns import ManagedDNSRecord, ManagedDNSZone
 from app.models.email import ManagedEmailAccount
+from app.models.hosting_account import ManagedHostingAccount
 from app.models.ftp import ManagedFTPAccount
 from app.models.token_blocklist import TokenBlocklist
 from app.models.user import User
@@ -17,6 +18,7 @@ __all__ = [
     'ManagedDatabaseUser',
     'ManagedDatabaseGrant',
     'ManagedEmailAccount',
+    'ManagedHostingAccount',
     'ManagedDNSZone',
     'ManagedDNSRecord',
     'ManagedFTPAccount',

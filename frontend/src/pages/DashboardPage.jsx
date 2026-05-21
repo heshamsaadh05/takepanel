@@ -4,10 +4,10 @@ import api from '../api/client'
 
 const starterCards = [
   {
-    to: '/dns',
-    label: 'Customize Nameservers',
-    badge: 'Setup',
-    description: 'Prepare DNS zones, A records, MX records, and default name server entries.'
+    to: '/account-functions',
+    label: 'Create a New Account',
+    badge: 'Primary',
+    description: 'Provision a domain, account username, password, and initial hosting settings.'
   },
   {
     to: '/sites',
@@ -49,6 +49,7 @@ const toolGroups = [
   {
     title: 'Account Functions',
     items: [
+      { to: '/account-functions', title: 'Account Functions', description: 'Create and manage hosting accounts.' },
       { to: '/sites', title: 'Websites', description: 'Add and remove hosted domains.' },
       { to: '/databases', title: 'Database Services', description: 'MySQL and MariaDB management.' },
       { to: '/email', title: 'Email Accounts', description: 'Create mailboxes and reset passwords.' },
