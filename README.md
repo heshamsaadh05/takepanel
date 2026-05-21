@@ -18,6 +18,7 @@ What installer does automatically:
 - Creates `systemd` backend service (`takepanel` via gunicorn)
 - Configures nginx on server IP (`default_server`)
 - Seeds default admin account
+- Enables Linux account login via PAM (server credentials)
 
 After install:
 - Panel URL: `http://SERVER_IP`
@@ -27,6 +28,10 @@ After install:
 Default login:
 - Email: `admin@takepanel.local`
 - Password: `ChangeMe123!`
+
+Server login (also supported):
+- Username: `root` (or any local Linux user)
+- Password: same password used for SSH/server login
 
 ## Optional Domain + SSL Later
 You can later move from IP mode to domain + Let's Encrypt from inside panel scripts/API.

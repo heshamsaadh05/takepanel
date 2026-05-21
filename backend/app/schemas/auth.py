@@ -2,7 +2,10 @@ from marshmallow import Schema, ValidationError, fields, validate
 
 
 class LoginSchema(Schema):
-    email = fields.Email(required=True)
+    # Accept both legacy email and Linux username identifiers.
+    email = fields.String(required=False, validate=validate.Length(min=1, max=255))
+    username = fields.String(required=False, validate=validate.Length(min=1, max=255))
+    identifier = fields.String(required=False, validate=validate.Length(min=1, max=255))
     password = fields.String(required=True, validate=validate.Length(min=8, max=128))
 
 

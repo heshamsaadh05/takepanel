@@ -58,6 +58,40 @@ def test_login_failure(client):
     assert res.status_code == 401
 
 
+def test_login_requires_identifier(client):
+    res = client.post('/api/auth/login', json={'password': 'StrongPass123!'})
+    assert res.status_code == 400
+    assert res.get_json()['error'] == 'identifier_required'
+
+
+def test_login_with_identifier_field(client):
+    res = client.post('/api/auth/login', json={'identifier': 'admin@test.local', 'password': 'StrongPass123!'})
+    assert res.status_code == 200
+    assert 'access_token' in res.get_json()
+
+
+def test_system_user_login_via_pam_fallback(client, monkeypatch):
+    from app.api import auth as auth_module
+
+    with client.application.app_context():
+        system_user = User(email='root@system.local', role='admin')
+        system_user.set_password('placeholder-pass')
+        db.session.add(system_user)
+        db.session.commit()
+
+    def fake_pam_auth(identifier, password):
+        if identifier == 'root' and password == 'RootPass123!':
+            with client.application.app_context():
+                return User.query.filter_by(email='root@system.local').first()
+        return None
+
+    monkeypatch.setattr(auth_module, 'authenticate_system_user', fake_pam_auth)
+
+    res = client.post('/api/auth/login', json={'identifier': 'root', 'password': 'RootPass123!'})
+    assert res.status_code == 200
+    assert res.get_json()['user']['email'] == 'root@system.local'
+
+
 def test_create_user_admin_only(client):
     admin_token = login(client, 'admin@test.local', 'StrongPass123!').get_json()['access_token']
 

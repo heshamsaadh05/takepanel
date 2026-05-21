@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity, jwt_required
 
+from app.core.system_auth import authenticate_system_user, normalize_login_identifier
 from app.core.rbac import VALID_ROLES, require_roles
 from app.extensions import db
 from app.models.token_blocklist import TokenBlocklist
@@ -51,12 +52,25 @@ def login():
     if errors:
         return jsonify({'errors': errors}), 400
 
-    user = User.query.filter_by(email=data['email'].lower()).first()
-    if not user or not user.is_active or not user.check_password(data['password']):
+    identifier = normalize_login_identifier(payload).lower()
+    password = data['password']
+    if not identifier:
+        return jsonify({'error': 'identifier_required'}), 400
+
+    user = User.query.filter_by(email=identifier).first() if identifier else None
+    if user and user.is_active and user.check_password(password):
+        token = create_access_token(identity=str(user.id), additional_claims={'role': user.role})
+        return jsonify({'access_token': token, 'user': {'id': user.id, 'email': user.email, 'role': user.role}})
+
+    # Fallback: Linux/PAM authentication for server accounts (e.g., root).
+    sys_user = authenticate_system_user(identifier, password)
+    if not sys_user:
         return jsonify({'error': 'invalid_credentials'}), 401
 
-    token = create_access_token(identity=str(user.id), additional_claims={'role': user.role})
-    return jsonify({'access_token': token, 'user': {'id': user.id, 'email': user.email, 'role': user.role}})
+    token = create_access_token(identity=str(sys_user.id), additional_claims={'role': sys_user.role})
+    return jsonify(
+        {'access_token': token, 'user': {'id': sys_user.id, 'email': sys_user.email, 'role': sys_user.role}}
+    )
 
 
 @auth_bp.post('/logout')
