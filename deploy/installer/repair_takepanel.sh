@@ -25,13 +25,13 @@ log() { echo "[TakePanel Repair] $*"; }
 
 install_node20_apt() {
   apt update
-  apt install -y curl ca-certificates gnupg
+  apt install -y curl ca-certificates gnupg build-essential libpam0g-dev
   curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
   apt install -y nodejs
 }
 
 install_node20_dnf() {
-  dnf install -y curl ca-certificates
+  dnf install -y curl ca-certificates gcc pam-devel
   curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
   dnf install -y nodejs
 }

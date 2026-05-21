@@ -10,6 +10,13 @@ Run one command only on a fresh Linux server (no arguments required):
 curl -fsSL https://raw.githubusercontent.com/heshamsaadh05/takepanel/main/deploy/installer/install_takepanel.sh | sudo bash
 ```
 
+## Full Rebuild + Login Repair (One Command)
+If login fails or installation is partially broken, run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/heshamsaadh05/takepanel/main/deploy/installer/rebuild_takepanel.sh | sudo bash
+```
+
 What installer does automatically:
 - Installs dependencies (nginx, python, node)
 - Clones project from GitHub to `/opt/takepanel`

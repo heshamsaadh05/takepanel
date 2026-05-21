@@ -6,7 +6,8 @@ class LoginSchema(Schema):
     email = fields.String(required=False, validate=validate.Length(min=1, max=255))
     username = fields.String(required=False, validate=validate.Length(min=1, max=255))
     identifier = fields.String(required=False, validate=validate.Length(min=1, max=255))
-    password = fields.String(required=True, validate=validate.Length(min=8, max=128))
+    # Linux/PAM passwords may be shorter than 8 chars, so login must not enforce app-level minimum.
+    password = fields.String(required=True, validate=validate.Length(min=1, max=128))
 
 
 class RegisterSchema(Schema):

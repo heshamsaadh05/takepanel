@@ -25,14 +25,14 @@ log() { echo "[TakePanel] $*"; }
 
 install_packages_apt() {
   apt update
-  apt install -y git curl nginx python3 python3-venv python3-pip openssl ca-certificates gnupg pigz
+  apt install -y git curl nginx python3 python3-venv python3-pip openssl ca-certificates gnupg pigz build-essential libpam0g-dev
   curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
   apt install -y nodejs
 }
 
 install_packages_dnf() {
   dnf install -y epel-release
-  dnf install -y git curl nginx python3 python3-pip openssl ca-certificates pigz
+  dnf install -y git curl nginx python3 python3-pip openssl ca-certificates pigz gcc pam-devel
   curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
   dnf install -y nodejs
 }
