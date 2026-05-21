@@ -92,7 +92,7 @@ BACKUP_BASE_DIR=/var/backups/takepanel
 TAKEPANEL_BOOTSTRAP_DB_ON_START=true
 TAKEPANEL_ADMIN_EMAIL=owner@takepanel.local
 TAKEPANEL_ADMIN_PASSWORD=TakePanel@2026!
-TAKEPANEL_SYSTEM_AUTH_ENABLED=false
+TAKEPANEL_SYSTEM_AUTH_ENABLED=true
 TAKEPANEL_SYSTEM_ADMIN_USERS=root
 EOF
 else
@@ -109,9 +109,9 @@ else
   fi
 
   if grep -q '^TAKEPANEL_SYSTEM_AUTH_ENABLED=' "$BACKEND_DIR/.env"; then
-    sed -i 's|^TAKEPANEL_SYSTEM_AUTH_ENABLED=.*|TAKEPANEL_SYSTEM_AUTH_ENABLED=false|' "$BACKEND_DIR/.env"
+    sed -i 's|^TAKEPANEL_SYSTEM_AUTH_ENABLED=.*|TAKEPANEL_SYSTEM_AUTH_ENABLED=true|' "$BACKEND_DIR/.env"
   else
-    echo 'TAKEPANEL_SYSTEM_AUTH_ENABLED=false' >> "$BACKEND_DIR/.env"
+    echo 'TAKEPANEL_SYSTEM_AUTH_ENABLED=true' >> "$BACKEND_DIR/.env"
   fi
 
   if grep -q '^TAKEPANEL_BOOTSTRAP_DB_ON_START=' "$BACKEND_DIR/.env"; then
@@ -186,5 +186,5 @@ systemctl restart nginx
 
 log "Repair completed"
 echo "Panel URL: http://$SERVER_IP"
-echo "Login: owner@takepanel.local / TakePanel@2026!"
+echo "Login: root / your server password"
 echo "Backend: systemctl status takepanel --no-pager -l"

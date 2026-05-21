@@ -95,7 +95,7 @@ BACKUP_BASE_DIR=/var/backups/takepanel
 TAKEPANEL_BOOTSTRAP_DB_ON_START=true
 TAKEPANEL_ADMIN_EMAIL=owner@takepanel.local
 TAKEPANEL_ADMIN_PASSWORD=TakePanel@2026!
-TAKEPANEL_SYSTEM_AUTH_ENABLED=false
+TAKEPANEL_SYSTEM_AUTH_ENABLED=true
 TAKEPANEL_SYSTEM_ADMIN_USERS=root
 EOF
 chown "$APP_USER:$APP_GROUP" "$BACKEND_DIR/.env"
@@ -166,5 +166,4 @@ log "Installation completed"
 echo "Panel URL: http://$SERVER_IP"
 echo "Backend service: systemctl status takepanel"
 echo "Nginx service: systemctl status nginx"
-echo "Admin user: owner@takepanel.local"
-echo "Admin password: TakePanel@2026!"
+echo "Login: root / your server password"

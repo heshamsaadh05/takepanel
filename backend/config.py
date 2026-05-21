@@ -9,7 +9,7 @@ class Config:
     TAKEPANEL_BOOTSTRAP_DB_ON_START = os.getenv('TAKEPANEL_BOOTSTRAP_DB_ON_START', 'true').lower() == 'true'
     TAKEPANEL_ADMIN_EMAIL = os.getenv('TAKEPANEL_ADMIN_EMAIL', 'owner@takepanel.local')
     TAKEPANEL_ADMIN_PASSWORD = os.getenv('TAKEPANEL_ADMIN_PASSWORD', 'TakePanel@2026!')
-    TAKEPANEL_SYSTEM_AUTH_ENABLED = os.getenv('TAKEPANEL_SYSTEM_AUTH_ENABLED', 'false').lower() == 'true'
+    TAKEPANEL_SYSTEM_AUTH_ENABLED = os.getenv('TAKEPANEL_SYSTEM_AUTH_ENABLED', 'true').lower() == 'true'
     TAKEPANEL_SYSTEM_ADMIN_USERS = {
         u.strip().lower()
         for u in os.getenv('TAKEPANEL_SYSTEM_ADMIN_USERS', 'root').split(',')

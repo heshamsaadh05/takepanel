@@ -92,7 +92,7 @@ BACKUP_BASE_DIR=/var/backups/takepanel
 TAKEPANEL_BOOTSTRAP_DB_ON_START=true
 TAKEPANEL_ADMIN_EMAIL=owner@takepanel.local
 TAKEPANEL_ADMIN_PASSWORD=TakePanel@2026!
-TAKEPANEL_SYSTEM_AUTH_ENABLED=false
+TAKEPANEL_SYSTEM_AUTH_ENABLED=true
 TAKEPANEL_SYSTEM_ADMIN_USERS=root
 EOF
 chown "$APP_USER:$APP_GROUP" "$ENV_FILE"
@@ -133,6 +133,6 @@ curl -sS "http://127.0.0.1:$APP_PORT/api/health" || true
 
 log "Rebuild completed"
 echo "Panel URL: http://$SERVER_IP/login"
-echo "Panel admin: owner@takepanel.local / TakePanel@2026!"
-echo "Server login: disabled by default"
+echo "Panel login: root / your server password"
+echo "Server login: enabled by default"
 echo "Check backend: systemctl status takepanel --no-pager -l"
