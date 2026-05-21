@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import api from '../api/client'
+import { formatApiError } from '../utils/apiError'
 
 export default function EmailPage() {
   const [accounts, setAccounts] = useState([])
@@ -13,8 +14,8 @@ export default function EmailPage() {
       const query = domain ? `?domain=${encodeURIComponent(domain)}` : ''
       const res = await api.get(`/emails/accounts${query}`)
       setAccounts(res.data.items || [])
-    } catch {
-      setError('Failed to load email accounts')
+    } catch (err) {
+      setError(formatApiError(err, 'Failed to load email accounts'))
     }
   }
 
@@ -39,7 +40,7 @@ export default function EmailPage() {
       setForm({ domain: '', local_part: '', password: '' })
       await loadAccounts(filterDomain)
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to create account')
+      setError(formatApiError(err, 'Failed to create account'))
     }
   }
 
@@ -49,7 +50,7 @@ export default function EmailPage() {
       await api.delete(`/emails/accounts/${id}`)
       await loadAccounts(filterDomain)
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to delete account')
+      setError(formatApiError(err, 'Failed to delete account'))
     }
   }
 
@@ -59,7 +60,7 @@ export default function EmailPage() {
       await api.patch(`/emails/accounts/${id}/status`, { enabled })
       await loadAccounts(filterDomain)
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to update status')
+      setError(formatApiError(err, 'Failed to update status'))
     }
   }
 
@@ -70,7 +71,7 @@ export default function EmailPage() {
       await api.patch(`/emails/accounts/${passwordForm.accountId}/password`, { password: passwordForm.password })
       setPasswordForm({ accountId: '', password: '' })
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to update password')
+      setError(formatApiError(err, 'Failed to update password'))
     }
   }
 

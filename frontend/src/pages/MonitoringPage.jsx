@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import api from '../api/client'
+import { formatApiError } from '../utils/apiError'
 
 export default function MonitoringPage() {
   const [metrics, setMetrics] = useState({ cpu: 0, ram: 0, disk: 0, network: { in_mbps: 0, out_mbps: 0 } })
@@ -16,8 +17,8 @@ export default function MonitoringPage() {
       setMetrics(next)
       setAlerts(res.data.alerts || [])
       setHistory((prev) => [...prev.slice(-19), { t: Date.now(), ...next }])
-    } catch {
-      setError('Failed to fetch monitoring metrics')
+    } catch (err) {
+      setError(formatApiError(err, 'Failed to fetch monitoring metrics'))
     }
   }
 
@@ -42,7 +43,7 @@ export default function MonitoringPage() {
         await api.post('/security/fail2ban/apply')
       }
     } catch (err) {
-      setError(err?.response?.data?.error || `Failed to apply ${action}`)
+      setError(formatApiError(err, `Failed to apply ${action}`))
     } finally {
       setBusyAction('')
     }
@@ -56,7 +57,7 @@ export default function MonitoringPage() {
       await api.post('/security/ssl/setup', sslForm)
       setSslForm({ domain: '', email: '' })
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to configure SSL')
+      setError(formatApiError(err, 'Failed to configure SSL'))
     } finally {
       setBusyAction('')
     }

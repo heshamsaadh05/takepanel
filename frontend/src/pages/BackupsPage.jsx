@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import api from '../api/client'
+import { formatApiError } from '../utils/apiError'
 
 export default function BackupsPage() {
   const [backups, setBackups] = useState([])
@@ -27,8 +28,8 @@ export default function BackupsPage() {
   const refresh = async () => {
     try {
       await Promise.all([loadBackups(), loadSchedule()])
-    } catch {
-      setError('Failed to load backup dashboard data')
+    } catch (err) {
+      setError(formatApiError(err, 'Failed to load backup dashboard data'))
     }
   }
 
@@ -43,7 +44,7 @@ export default function BackupsPage() {
       await api.post('/backups/run', { backup_type: 'full' })
       await loadBackups()
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to run backup')
+      setError(formatApiError(err, 'Failed to run backup'))
     } finally {
       setRunning(false)
     }
@@ -55,7 +56,7 @@ export default function BackupsPage() {
       await api.post('/backups/restore', { backup_id: backupId })
       alert('Restore completed')
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to restore backup')
+      setError(formatApiError(err, 'Failed to restore backup'))
     }
   }
 
@@ -66,7 +67,7 @@ export default function BackupsPage() {
       await api.post('/backups/schedule', scheduleForm)
       await loadSchedule()
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to save backup schedule')
+      setError(formatApiError(err, 'Failed to save backup schedule'))
     }
   }
 

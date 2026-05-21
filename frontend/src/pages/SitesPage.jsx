@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import api from '../api/client'
+import { formatApiError } from '../utils/apiError'
 
 export default function SitesPage() {
   const [sites, setSites] = useState([])
@@ -14,8 +15,8 @@ export default function SitesPage() {
     try {
       const res = await api.get('/web/sites')
       setSites(res.data.items || [])
-    } catch {
-      setError('Failed to load websites')
+    } catch (err) {
+      setError(formatApiError(err, 'Failed to load websites'))
     } finally {
       setLoading(false)
     }
@@ -34,7 +35,7 @@ export default function SitesPage() {
       setForm({ domain: '', server_type: form.server_type })
       await loadSites()
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to add website')
+      setError(formatApiError(err, 'Failed to add website'))
     }
   }
 
@@ -44,7 +45,7 @@ export default function SitesPage() {
     try {
       await api.post(`/web/service/${action}`)
     } catch (err) {
-      setError(err?.response?.data?.error || `Failed to ${action} web service`)
+      setError(formatApiError(err, `Failed to ${action} web service`))
     } finally {
       setServiceBusy('')
     }
@@ -61,7 +62,7 @@ export default function SitesPage() {
       }
       await loadSites()
     } catch (err) {
-      setError(err?.response?.data?.error || `Failed to ${action} website`)
+      setError(formatApiError(err, `Failed to ${action} website`))
     } finally {
       setBusyId(null)
     }

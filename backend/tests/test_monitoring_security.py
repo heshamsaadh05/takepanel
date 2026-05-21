@@ -5,17 +5,18 @@ import pytest
 from app import create_app
 from app.extensions import db
 from app.models.user import User
+from config import Config
 
 
 @pytest.fixture()
 def app():
     db_file = tempfile.NamedTemporaryFile(suffix='.db', delete=False)
-    app = create_app()
-    app.config.update(
-        TESTING=True,
-        SQLALCHEMY_DATABASE_URI=f"sqlite:///{db_file.name}",
-        JWT_SECRET_KEY='test-jwt',
-    )
+    class TestConfig(Config):
+        TESTING = True
+        SQLALCHEMY_DATABASE_URI = f"sqlite:///{db_file.name}"
+        JWT_SECRET_KEY = 'test-jwt'
+
+    app = create_app(TestConfig)
 
     with app.app_context():
         db.create_all()

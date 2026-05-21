@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import api from '../api/client'
+import { formatApiError } from '../utils/apiError'
 
 export default function DatabasesPage() {
   const [databases, setDatabases] = useState([])
@@ -21,8 +22,8 @@ export default function DatabasesPage() {
       setDatabases(dbRes.data.items || [])
       setDbUsers(usersRes.data.items || [])
       setGrants(grantsRes.data.items || [])
-    } catch {
-      setError('Failed to load database module data')
+    } catch (err) {
+      setError(formatApiError(err, 'Failed to load database module data'))
     }
   }
 
@@ -38,7 +39,7 @@ export default function DatabasesPage() {
       setDbForm({ ...dbForm, name: '' })
       await loadAll()
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to create database')
+      setError(formatApiError(err, 'Failed to create database'))
     }
   }
 
@@ -48,7 +49,7 @@ export default function DatabasesPage() {
       await api.delete(`/databases/${id}`)
       await loadAll()
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to delete database')
+      setError(formatApiError(err, 'Failed to delete database'))
     }
   }
 
@@ -60,7 +61,7 @@ export default function DatabasesPage() {
       setUserForm({ username: '', password: '', host: '%' })
       await loadAll()
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to create database user')
+      setError(formatApiError(err, 'Failed to create database user'))
     }
   }
 
@@ -70,7 +71,7 @@ export default function DatabasesPage() {
       await api.delete(`/databases/users/${id}`)
       await loadAll()
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to delete database user')
+      setError(formatApiError(err, 'Failed to delete database user'))
     }
   }
 
@@ -85,7 +86,7 @@ export default function DatabasesPage() {
       })
       await loadAll()
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to grant privileges')
+      setError(formatApiError(err, 'Failed to grant privileges'))
     }
   }
 

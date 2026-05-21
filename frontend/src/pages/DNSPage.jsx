@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import api from '../api/client'
+import { formatApiError } from '../utils/apiError'
 
 export default function DNSPage() {
   const [zones, setZones] = useState([])
@@ -34,8 +35,8 @@ export default function DNSPage() {
   const refreshAll = async (zoneId = selectedZoneId) => {
     try {
       await Promise.all([loadZones(), loadRecords(zoneId)])
-    } catch {
-      setError('Failed to load DNS data')
+    } catch (err) {
+      setError(formatApiError(err, 'Failed to load DNS data'))
     }
   }
 
@@ -53,7 +54,7 @@ export default function DNSPage() {
       setZoneForm({ domain: '', provider: zoneForm.provider })
       await refreshAll(selectedZoneId)
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to create DNS zone')
+      setError(formatApiError(err, 'Failed to create DNS zone'))
     }
   }
 
@@ -64,7 +65,7 @@ export default function DNSPage() {
       if (String(selectedZoneId) === String(id)) setSelectedZoneId('')
       await refreshAll('')
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to delete DNS zone')
+      setError(formatApiError(err, 'Failed to delete DNS zone'))
     }
   }
 
@@ -81,7 +82,7 @@ export default function DNSPage() {
       setRecordForm({ ...recordForm, value: '', priority: '' })
       await refreshAll(selectedZoneId)
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to create DNS record')
+      setError(formatApiError(err, 'Failed to create DNS record'))
     }
   }
 
@@ -107,7 +108,7 @@ export default function DNSPage() {
       setEditRecordId(null)
       await refreshAll(selectedZoneId)
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to update DNS record')
+      setError(formatApiError(err, 'Failed to update DNS record'))
     }
   }
 
@@ -117,7 +118,7 @@ export default function DNSPage() {
       await api.delete(`/dns/records/${id}`)
       await refreshAll(selectedZoneId)
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to delete DNS record')
+      setError(formatApiError(err, 'Failed to delete DNS record'))
     }
   }
 
@@ -147,7 +148,14 @@ export default function DNSPage() {
         <div className="dns-list">
           {zones.map((zone) => (
             <div key={zone.id} className="dns-item">
-              <button type="button" className="linkish" onClick={() => { setSelectedZoneId(String(zone.id)); loadRecords(zone.id) }}>
+              <button
+                type="button"
+                className="linkish"
+                onClick={() => {
+                  setSelectedZoneId(String(zone.id))
+                  loadRecords(zone.id).catch((err) => setError(formatApiError(err, 'Failed to load DNS records')))
+                }}
+              >
                 {zone.domain} ({zone.provider})
               </button>
               <button type="button" className="danger" onClick={() => removeZone(zone.id)}>Delete</button>
@@ -165,7 +173,7 @@ export default function DNSPage() {
               const zoneId = e.target.value
               setRecordForm({ ...recordForm, zone_id: zoneId })
               setSelectedZoneId(zoneId)
-              loadRecords(zoneId)
+              loadRecords(zoneId).catch((err) => setError(formatApiError(err, 'Failed to load DNS records')))
             }}
             required
           >

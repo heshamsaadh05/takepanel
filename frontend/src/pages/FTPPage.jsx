@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import api from '../api/client'
+import { formatApiError } from '../utils/apiError'
 
 export default function FTPPage() {
   const [accounts, setAccounts] = useState([])
@@ -17,8 +18,8 @@ export default function FTPPage() {
     try {
       const res = await api.get('/ftp/accounts')
       setAccounts(res.data.items || [])
-    } catch {
-      setError('Failed to load FTP accounts')
+    } catch (err) {
+      setError(formatApiError(err, 'Failed to load FTP accounts'))
     }
   }
 
@@ -34,7 +35,7 @@ export default function FTPPage() {
       setForm({ ...form, username: '', password: '' })
       await loadAccounts()
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to create FTP account')
+      setError(formatApiError(err, 'Failed to create FTP account'))
     }
   }
 
@@ -49,7 +50,7 @@ export default function FTPPage() {
       setEdit({ id: '', home_directory: '', permissions: 'rw' })
       await loadAccounts()
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to update FTP account')
+      setError(formatApiError(err, 'Failed to update FTP account'))
     }
   }
 
@@ -59,7 +60,7 @@ export default function FTPPage() {
       await api.delete(`/ftp/accounts/${id}`)
       await loadAccounts()
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to delete FTP account')
+      setError(formatApiError(err, 'Failed to delete FTP account'))
     }
   }
 

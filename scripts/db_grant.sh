@@ -13,6 +13,11 @@ if [[ -z "$DB_NAME" || -z "$DB_USER" ]]; then
   exit 1
 fi
 
+if ! command -v mysql >/dev/null 2>&1; then
+  echo "mysql_client_missing"
+  exit 1
+fi
+
 MYSQL_CMD=(mysql -u"$DB_ADMIN_USER")
 if [[ -n "$DB_ADMIN_PASSWORD" ]]; then
   MYSQL_CMD+=( -p"$DB_ADMIN_PASSWORD" )

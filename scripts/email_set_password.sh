@@ -10,6 +10,11 @@ if [[ -z "$MAIL_DOMAIN" || -z "$LOCAL_PART" || -z "$NEW_PASSWORD" ]]; then
   exit 1
 fi
 
+if ! command -v doveadm >/dev/null 2>&1; then
+  echo "dovecot_tools_missing"
+  exit 1
+fi
+
 EMAIL="$LOCAL_PART@$MAIL_DOMAIN"
 PASS_HASH=$(doveadm pw -s SHA512-CRYPT -p "$NEW_PASSWORD")
 

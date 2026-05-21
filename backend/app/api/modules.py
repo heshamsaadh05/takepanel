@@ -188,7 +188,7 @@ def add_site():
         return jsonify({'error': 'domain_already_exists'}), 409
 
     web_root = str(Path(WEB_ROOT_BASE) / domain / 'public')
-    site = Website(domain=domain, web_root=web_root, server_type=data['server_type'], status='stopped')
+    site = Website(domain=domain, web_root=web_root, server_type=data['server_type'], status='running')
     db.session.add(site)
     db.session.commit()
 
@@ -198,6 +198,14 @@ def add_site():
         db.session.commit()
         logger.exception('Website provisioning failed for domain=%s output=%s', domain, output)
         return jsonify({'error': 'provision_failed', 'details': output}), 500
+
+    vhost_created, vhost_output = run_command(['bash', 'scripts/generate_vhost.sh', data['server_type'], domain, web_root])
+    if not vhost_created:
+        run_command(['bash', 'scripts/remove_website.sh', domain, web_root])
+        db.session.delete(site)
+        db.session.commit()
+        logger.exception('Website vhost provisioning failed for domain=%s output=%s', domain, vhost_output)
+        return jsonify({'error': 'vhost_provision_failed', 'details': vhost_output}), 500
 
     return jsonify({'id': site.id, 'domain': site.domain, 'web_root': site.web_root, 'status': site.status}), 201
 
@@ -228,7 +236,7 @@ def start_site(site_id: int):
     if not site:
         return jsonify({'error': 'site_not_found'}), 404
 
-    ok, output = control_web_service('reload', WEB_SERVICE_NAME)
+    ok, output = control_web_service('start', WEB_SERVICE_NAME)
     if not ok:
         logger.exception('Web service reload failed while starting site_id=%s output=%s', site_id, output)
         return jsonify({'error': 'service_reload_failed', 'details': output}), 500
@@ -246,7 +254,7 @@ def stop_site(site_id: int):
     if not site:
         return jsonify({'error': 'site_not_found'}), 404
 
-    ok, output = control_web_service('reload', WEB_SERVICE_NAME)
+    ok, output = control_web_service('stop', WEB_SERVICE_NAME)
     if not ok:
         logger.exception('Web service reload failed while stopping site_id=%s output=%s', site_id, output)
         return jsonify({'error': 'service_reload_failed', 'details': output}), 500
@@ -348,6 +356,13 @@ def create_hosting_account():
         db.session.rollback()
         logger.exception('Hosting account website provisioning failed for domain=%s output=%s', domain, output)
         return jsonify({'error': 'provision_failed', 'details': output}), 500
+
+    vhost_created, vhost_output = run_command(['bash', 'scripts/generate_vhost.sh', data['server_type'], domain, web_root])
+    if not vhost_created:
+        run_command(['bash', 'scripts/remove_website.sh', domain, web_root])
+        db.session.rollback()
+        logger.exception('Hosting account vhost provisioning failed for domain=%s output=%s', domain, vhost_output)
+        return jsonify({'error': 'vhost_provision_failed', 'details': vhost_output}), 500
 
     ftp_protocol = 'vsftpd'
     ftp_created, ftp_output = run_command(
@@ -1269,7 +1284,7 @@ def set_backup_schedule():
     if len(cron_expression.split()) != 5:
         return jsonify({'errors': {'cron_expression': ['cron_expression_must_have_5_fields']}}), 400
 
-    runner_path = str(Path.cwd() / 'scripts' / 'backup_run.sh')
+    runner_path = str(Path(__file__).resolve().parents[3] / 'scripts' / 'backup_run.sh')
     ok, output = run_command(['bash', 'scripts/backup_schedule.sh', cron_expression, runner_path])
     if not ok:
         logger.exception('Backup schedule update failed output=%s', output)

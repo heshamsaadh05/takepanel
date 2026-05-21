@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import api from '../api/client'
+import { formatApiError } from '../utils/apiError'
 
 const actionCards = [
   {
@@ -163,8 +164,8 @@ export default function AccountFunctionsPage() {
       const res = await api.get('/hosting/accounts')
       setAccounts(res.data.items || [])
       setError('')
-    } catch {
-      setError('Failed to load hosting accounts')
+    } catch (err) {
+      setError(formatApiError(err, 'Failed to load hosting accounts'))
     } finally {
       setLoading(false)
     }
@@ -205,7 +206,7 @@ export default function AccountFunctionsPage() {
       setForm(initialForm)
       await loadAccounts()
     } catch (err) {
-      setError(err?.response?.data?.error || err?.response?.data?.errors?.confirm_password?.[0] || 'Failed to create account')
+      setError(formatApiError(err, 'Failed to create account'))
     }
   }
 
@@ -218,7 +219,7 @@ export default function AccountFunctionsPage() {
       await loadAccounts()
       setSuccess('Account removed successfully')
     } catch (err) {
-      setError(err?.response?.data?.error || 'Failed to remove account')
+      setError(formatApiError(err, 'Failed to remove account'))
     } finally {
       setBusyId(null)
     }

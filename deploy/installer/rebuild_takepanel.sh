@@ -23,6 +23,8 @@ SERVER_IP="$(hostname -I | awk '{print $1}')"
 BACKUP_SUFFIX="$(date +%Y%m%d_%H%M%S)"
 HELPER_SRC="$INSTALL_DIR/deploy/installer/takepanel-auth-system.py"
 HELPER_DST="/usr/local/bin/takepanel-auth-system"
+SCRIPT_RUNNER_SRC="$INSTALL_DIR/deploy/installer/takepanel-script-runner.sh"
+SCRIPT_RUNNER_DST="/usr/local/bin/takepanel-script-runner"
 SUDOERS_FILE="/etc/sudoers.d/takepanel"
 
 log() { echo "[TakePanel Rebuild] $*"; }
@@ -102,14 +104,17 @@ TAKEPANEL_SYSTEM_AUTH_ENABLED=true
 TAKEPANEL_SYSTEM_AUTH_HELPER=/usr/local/bin/takepanel-auth-system
 TAKEPANEL_SYSTEM_AUTH_TIMEOUT=10
 TAKEPANEL_SYSTEM_ADMIN_USERS=root
+TAKEPANEL_SCRIPT_RUNNER=/usr/local/bin/takepanel-script-runner
 EOF
 chown "$APP_USER:$APP_GROUP" "$ENV_FILE"
 
 log "Installing system auth helper"
 install -o root -g root -m 0755 "$HELPER_SRC" "$HELPER_DST"
+log "Installing script runner"
+install -o root -g root -m 0755 "$SCRIPT_RUNNER_SRC" "$SCRIPT_RUNNER_DST"
 cat > "$SUDOERS_FILE" <<EOF
 Defaults:takepanel !requiretty
-takepanel ALL=(root) NOPASSWD: $HELPER_DST *
+takepanel ALL=(root) NOPASSWD: $HELPER_DST *, $SCRIPT_RUNNER_DST *
 EOF
 chmod 0440 "$SUDOERS_FILE"
 visudo -cf "$SUDOERS_FILE"
