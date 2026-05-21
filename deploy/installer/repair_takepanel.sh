@@ -20,18 +20,21 @@ SERVICE_FILE="/etc/systemd/system/takepanel.service"
 NGINX_SITE="/etc/nginx/conf.d/takepanel.conf"
 SERVER_IP="$(hostname -I | awk '{print $1}')"
 BACKUP_SUFFIX="$(date +%Y%m%d_%H%M%S)"
+HELPER_SRC="$INSTALL_DIR/deploy/installer/takepanel-auth-system.py"
+HELPER_DST="/usr/local/bin/takepanel-auth-system"
+SUDOERS_FILE="/etc/sudoers.d/takepanel"
 
 log() { echo "[TakePanel Repair] $*"; }
 
 install_node20_apt() {
   apt update
-  apt install -y curl ca-certificates gnupg
+  apt install -y curl ca-certificates gnupg sudo
   curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
   apt install -y nodejs
 }
 
 install_node20_dnf() {
-  dnf install -y curl ca-certificates
+  dnf install -y curl ca-certificates sudo
   curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
   dnf install -y nodejs
 }
@@ -96,6 +99,7 @@ TAKEPANEL_BOOTSTRAP_DB_ON_START=true
 TAKEPANEL_ADMIN_EMAIL=owner@takepanel.local
 TAKEPANEL_ADMIN_PASSWORD=TakePanel@2026!
 TAKEPANEL_SYSTEM_AUTH_ENABLED=true
+TAKEPANEL_SYSTEM_AUTH_HELPER=/usr/local/bin/takepanel-auth-system
 TAKEPANEL_SYSTEM_AUTH_TIMEOUT=10
 TAKEPANEL_SYSTEM_ADMIN_USERS=root
 EOF
@@ -118,6 +122,12 @@ else
     echo 'TAKEPANEL_SYSTEM_AUTH_ENABLED=true' >> "$BACKEND_DIR/.env"
   fi
 
+  if grep -q '^TAKEPANEL_SYSTEM_AUTH_HELPER=' "$BACKEND_DIR/.env"; then
+    sed -i 's|^TAKEPANEL_SYSTEM_AUTH_HELPER=.*|TAKEPANEL_SYSTEM_AUTH_HELPER=/usr/local/bin/takepanel-auth-system|' "$BACKEND_DIR/.env"
+  else
+    echo 'TAKEPANEL_SYSTEM_AUTH_HELPER=/usr/local/bin/takepanel-auth-system' >> "$BACKEND_DIR/.env"
+  fi
+
   if grep -q '^TAKEPANEL_SYSTEM_AUTH_TIMEOUT=' "$BACKEND_DIR/.env"; then
     sed -i 's|^TAKEPANEL_SYSTEM_AUTH_TIMEOUT=.*|TAKEPANEL_SYSTEM_AUTH_TIMEOUT=10|' "$BACKEND_DIR/.env"
   else
@@ -131,6 +141,15 @@ else
   fi
 fi
 chown "$APP_USER:$APP_GROUP" "$BACKEND_DIR/.env"
+
+log "Installing system auth helper"
+install -o root -g root -m 0755 "$HELPER_SRC" "$HELPER_DST"
+cat > "$SUDOERS_FILE" <<EOF
+Defaults:takepanel !requiretty
+takepanel ALL=(root) NOPASSWD: $HELPER_DST *
+EOF
+chmod 0440 "$SUDOERS_FILE"
+visudo -cf "$SUDOERS_FILE"
 
 log "Building frontend"
 sudo -u "$APP_USER" bash -c "cd '$FRONTEND_DIR' && npm install && npm run build"

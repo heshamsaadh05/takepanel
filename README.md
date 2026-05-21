@@ -25,6 +25,7 @@ What installer does automatically:
 - Creates `systemd` backend service (`takepanel` via gunicorn)
 - Configures nginx on server IP (`default_server`)
 - Seeds default admin account
+- Installs a root-owned system-auth helper and sudoers rule for `root` logins
 - Enables server login with `root` credentials by default
 
 After install:
@@ -35,7 +36,7 @@ After install:
 Default login:
 - Username: `root`
 - Password: the same password used for SSH/server login
-- Authentication uses the local Linux `su` path from the backend service
+- Authentication uses a root-owned helper at `/usr/local/bin/takepanel-auth-system` via `sudo`, so the panel checks the live Linux account password safely
 
 ## Optional Domain + SSL Later
 You can later move from IP mode to domain + Let's Encrypt from inside panel scripts/API.

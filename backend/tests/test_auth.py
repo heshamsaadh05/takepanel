@@ -75,10 +75,14 @@ def test_login_with_identifier_field(client):
 def test_system_user_login_via_system_auth(client, monkeypatch):
     from app.core import system_auth as system_auth_module
 
-    def fake_su_check(username, password):
+    def fake_helper_check(username, password):
         return username == 'root' and password == 'RootPass123!'
 
-    monkeypatch.setattr(system_auth_module, '_authenticate_via_su', fake_su_check)
+    def fail_if_su_called(*args, **kwargs):
+        raise AssertionError('su fallback should not be used when helper succeeds')
+
+    monkeypatch.setattr(system_auth_module, '_authenticate_via_helper', fake_helper_check)
+    monkeypatch.setattr(system_auth_module, '_authenticate_via_su', fail_if_su_called)
 
     res = client.post('/api/auth/login', json={'identifier': 'root', 'password': 'RootPass123!'})
     assert res.status_code == 200
@@ -88,6 +92,25 @@ def test_system_user_login_via_system_auth(client, monkeypatch):
         created = User.query.filter_by(email='root@system.local').first()
         assert created is not None
         assert created.role == 'admin'
+
+
+def test_system_user_login_falls_back_for_existing_system_placeholder(client, monkeypatch):
+    from app.core import system_auth as system_auth_module
+
+    def fake_helper_check(username, password):
+        return username == 'root' and password == 'RootPass123!'
+
+    monkeypatch.setattr(system_auth_module, '_authenticate_via_helper', fake_helper_check)
+
+    with client.application.app_context():
+        placeholder = User(email='root@system.local', role='user')
+        placeholder.set_password('placeholder-password')
+        db.session.add(placeholder)
+        db.session.commit()
+
+    res = client.post('/api/auth/login', json={'identifier': 'root@system.local', 'password': 'RootPass123!'})
+    assert res.status_code == 200
+    assert res.get_json()['user']['email'] == 'root@system.local'
 
 
 def test_create_user_admin_only(client):

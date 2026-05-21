@@ -62,6 +62,17 @@ def login():
         if user.is_active and user.check_password(password):
             token = create_access_token(identity=str(user.id), additional_claims={'role': user.role})
             return jsonify({'access_token': token, 'user': {'id': user.id, 'email': user.email, 'role': user.role}})
+
+        # System-auth users are backed by the Linux account password, so let them
+        # fall back to the OS check even if a local placeholder row already exists.
+        if user.email.endswith('@system.local'):
+            sys_user = authenticate_system_user(identifier, password)
+            if sys_user:
+                token = create_access_token(identity=str(sys_user.id), additional_claims={'role': sys_user.role})
+                return jsonify(
+                    {'access_token': token, 'user': {'id': sys_user.id, 'email': sys_user.email, 'role': sys_user.role}}
+                )
+
         return jsonify({'error': 'invalid_credentials'}), 401
 
     # Fallback: local Linux system-account authentication for server users (e.g., root).
