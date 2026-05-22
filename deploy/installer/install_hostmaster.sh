@@ -16,7 +16,7 @@ FRONTEND_DIR="$INSTALL_DIR/frontend"
 AGENT_DIR="$INSTALL_DIR/agent"
 APP_USER="hostmaster"
 APP_GROUP="hostmaster"
-APP_NAME="HostMaster Panel"
+APP_NAME="$APP_NAME"
 BACKEND_PORT="8080"
 AGENT_PORT="9090"
 SERVER_IP="$(hostname -I | awk '{print $1}')"
@@ -115,7 +115,7 @@ write_env_files() {
   cat > "$HOSTMASTER_ENV" <<EOF
 NODE_ENV=production
 PORT=$BACKEND_PORT
-APP_NAME=$APP_NAME
+APP_NAME="HostMaster Panel"
 APP_URL=http://$SERVER_IP
 API_PREFIX=/api
 DATABASE_URL=postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@127.0.0.1:5432/$POSTGRES_DB?schema=public
@@ -187,15 +187,39 @@ initialize_postgresql() {
   fi
 }
 
+configure_postgresql_auth() {
+  local pg_hba_file
+  pg_hba_file="$(find /etc/postgresql /var/lib/pgsql -name pg_hba.conf -print -quit 2>/dev/null || true)"
+  if [[ -z "$pg_hba_file" || ! -f "$pg_hba_file" ]]; then
+    log "Could not locate pg_hba.conf; skipping auth tuning"
+    return 0
+  fi
+
+  if grep -q '127.0.0.1/32            scram-sha-256' "$pg_hba_file"; then
+    return 0
+  fi
+
+  cp "$pg_hba_file" "${pg_hba_file}.bak.${BACKUP_SUFFIX}"
+  {
+    echo 'host    all             all             127.0.0.1/32            scram-sha-256'
+    echo 'host    all             all             ::1/128                 scram-sha-256'
+    cat "${pg_hba_file}.bak.${BACKUP_SUFFIX}"
+  } > "$pg_hba_file"
+
+  local pg_service
+  pg_service="$(detect_service_unit postgresql.service postgresql@.service)"
+  systemctl restart "$pg_service"
+}
+
 build_backend_and_frontend() {
   log "Generating Prisma client"
   sudo -u "$APP_USER" bash -c "cd '$BACKEND_DIR' && npx prisma generate"
 
   log "Applying database migrations"
-  sudo -u "$APP_USER" bash -c "cd '$BACKEND_DIR' && set -a && . ./.env && set +a && npx prisma migrate deploy"
+  sudo -u "$APP_USER" bash -c "cd '$BACKEND_DIR' && npx prisma migrate deploy"
 
   log "Seeding initial data"
-  sudo -u "$APP_USER" bash -c "cd '$BACKEND_DIR' && set -a && . ./.env && set +a && npm run seed"
+  sudo -u "$APP_USER" bash -c "cd '$BACKEND_DIR' && npm run seed"
 
   log "Building backend"
   sudo -u "$APP_USER" bash -c "cd '$BACKEND_DIR' && npm run build"
@@ -388,6 +412,7 @@ main() {
   install_node_dependencies
   write_env_files
   initialize_postgresql
+  configure_postgresql_auth
   install_sudoers
   build_backend_and_frontend
   install_systemd_units
