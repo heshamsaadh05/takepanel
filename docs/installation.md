@@ -18,6 +18,7 @@ This is the recommended production-style path because it:
 - installs the system agent helpers
 - wires nginx as the reverse proxy
 - bootstraps the default admin account
+- installs the panel under `/opt/hostmaster`
 
 ## Requirements
 
@@ -65,10 +66,8 @@ docker compose -f docker/docker-compose.yml up -d --build
 
 After the installer completes:
 
-- Email: `owner@takepanel.local`
-- Password: `TakePanel@2026!`
-
-For system-login mode, the panel can also be configured to accept the server root credentials depending on the backend settings.
+- Email: `admin@hostmaster.local`
+- Password: `ChangeMe123!`
 
 ## Notes
 

@@ -12,9 +12,9 @@ fi
 
 REPO_URL="https://github.com/heshamsaadh05/takepanel.git"
 RAW_BASE="https://raw.githubusercontent.com/heshamsaadh05/takepanel/main"
-INSTALLER_URL="$RAW_BASE/deploy/installer/install_takepanel.sh"
+INSTALLER_URL="$RAW_BASE/deploy/installer/install_hostmaster.sh"
 TMP_DIR="$(mktemp -d)"
-TMP_SCRIPT="$TMP_DIR/install_takepanel.sh"
+TMP_SCRIPT="$TMP_DIR/install_hostmaster.sh"
 
 cleanup() {
   rm -rf "$TMP_DIR"
