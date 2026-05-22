@@ -1,61 +1,105 @@
-# TakePanel
+# HostMaster Panel
 
-Modular web hosting control panel (cPanel-like) with Flask backend and React frontend.
+HostMaster Panel is a modular web hosting control panel built as an independent product with:
 
-## Zero-Input Server Install (IP Mode)
+- `backend/` Node.js + TypeScript + Prisma + PostgreSQL + Redis
+- `frontend/` React + TypeScript + Vite + TailwindCSS
+- `agent/` a privileged system agent for allowlisted server operations
+- `docker/` local development and integration compose files
+- `docs/` architecture, security, deployment, installation, and roadmap notes
 
-Run one command only on a fresh Linux server (no arguments required):
+The project is designed to grow into a full hosting platform with admin and user panels, RBAC, audit logs, task queues, system provisioning, backups, SSL, DNS, mail, databases, and service management.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/heshamsaadh05/takepanel/main/deploy/installer/install_takepanel.sh | sudo bash
-```
+## Quick Start
 
-## Full Rebuild + Login Repair (One Command)
-If login fails or installation is partially broken, run:
+### 1. Install dependencies
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/heshamsaadh05/takepanel/main/deploy/installer/rebuild_takepanel.sh | sudo bash
-```
-
-What installer does automatically:
-- Installs dependencies (nginx, python, node)
-- Clones project from GitHub to `/opt/takepanel`
-- Builds frontend and installs backend dependencies
-- Creates `.env` with generated secure keys
-- Creates `systemd` backend service (`takepanel` via gunicorn)
-- Configures nginx on server IP (`default_server`)
-- Seeds default admin account
-- Installs a root-owned system-auth helper and sudoers rule for `root` logins
-- Enables server login with `root` credentials by default
-
-After install:
-- Panel URL: `http://SERVER_IP`
-- Backend service: `sudo systemctl status takepanel`
-- Nginx config: `/etc/nginx/conf.d/takepanel.conf`
-
-Default login:
-- Username: `root`
-- Password: the same password used for SSH/server login
-- Authentication uses a root-owned helper at `/usr/local/bin/takepanel-auth-system` via `sudo`, so the panel checks the live Linux account password safely
-
-## Optional Domain + SSL Later
-You can later move from IP mode to domain + Let's Encrypt from inside panel scripts/API.
-
-## Dev Quick Start
-
-### Backend
+Backend:
 ```bash
 cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-flask run --host 0.0.0.0 --port 8000
+npm install
 ```
 
-### Frontend
+Frontend:
 ```bash
 cd frontend
 npm install
+```
+
+Agent:
+```bash
+cd agent
+npm install
+```
+
+### 2. Configure env files
+
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+cp agent/.env.example agent/.env
+```
+
+### 3. Database setup
+
+```bash
+cd backend
+npx prisma generate
+npm run prisma:migrate
+npm run seed
+```
+
+### 4. Run locally
+
+Backend:
+```bash
+cd backend
 npm run dev
 ```
+
+Frontend:
+```bash
+cd frontend
+npm run dev
+```
+
+Agent:
+```bash
+cd agent
+npm run dev
+```
+
+### 5. Docker
+
+```bash
+docker compose -f docker/docker-compose.yml up -d --build
+```
+
+## Root Convenience Scripts
+
+From the repository root:
+
+```bash
+npm run migrate
+npm run seed
+npm run create-admin
+npm run worker
+npm run agent
+```
+
+## Default Login
+
+After seeding, the default admin login is:
+
+- Email: `admin@hostmaster.local`
+- Password: `ChangeMe123!`
+
+## Documentation
+
+- [Architecture](docs/architecture.md)
+- [Installation](docs/installation.md)
+- [API](docs/api.md)
+- [Security](docs/security.md)
+- [Deployment](docs/deployment.md)
+- [Roadmap](docs/roadmap.md)
+

@@ -1,6 +1,11 @@
 # Node / frontend build outputs
 frontend/node_modules/
 frontend/dist/
+backend/node_modules/
+backend/dist/
+agent/node_modules/
+agent/dist/
+*.tsbuildinfo
 
 # Python bytecode and caches
 __pycache__/

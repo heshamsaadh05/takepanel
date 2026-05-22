@@ -1,0 +1,69 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: hostmaster
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  backend:
+    build:
+      context: ../backend
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/hostmaster?schema=public
+      REDIS_URL: redis://redis:6379
+      PORT: 8080
+      APP_NAME: HostMaster Panel
+      APP_URL: http://localhost
+      API_PREFIX: /api
+      JWT_ACCESS_SECRET: change-me-access-secret-change-me-access-secret
+      JWT_REFRESH_SECRET: change-me-refresh-secret-change-me-refresh-secret
+      JWT_ACCESS_TTL: 15m
+      JWT_REFRESH_TTL: 30d
+      RATE_LIMIT_WINDOW_MS: 60000
+      RATE_LIMIT_MAX: 120
+      ADMIN_BOOTSTRAP_EMAIL: admin@hostmaster.local
+      ADMIN_BOOTSTRAP_PASSWORD: ChangeMe123!
+      ADMIN_BOOTSTRAP_USERNAME: admin
+      DEFAULT_LOCALE: en
+      DEFAULT_THEME: dark
+      MOCK_SYSTEM_MODE: true
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ../frontend
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+  nginx:
+    image: nginx:1.27-alpine
+    depends_on:
+      - frontend
+      - backend
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+
+volumes:
+  postgres_data:
+  redis_data:

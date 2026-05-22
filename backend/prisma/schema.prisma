@@ -1,0 +1,531 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  active
+  suspended
+  pending
+  deleted
+}
+
+enum HostingAccountStatus {
+  active
+  suspended
+  pending
+  deleted
+}
+
+enum DomainType {
+  primary
+  addon
+  parked
+  subdomain
+}
+
+enum DatabaseType {
+  mysql
+  postgresql
+}
+
+enum EmailAccountStatus {
+  active
+  disabled
+  suspended
+}
+
+enum SslCertificateType {
+  letsencrypt
+  custom
+  selfsigned
+}
+
+enum SslCertificateStatus {
+  active
+  expired
+  pending
+  revoked
+}
+
+enum BackupType {
+  full
+  files
+  databases
+  email
+  dns
+}
+
+enum BackupStatus {
+  pending
+  running
+  success
+  failed
+  restored
+}
+
+enum BackupFrequency {
+  daily
+  weekly
+  monthly
+}
+
+enum TaskStatus {
+  queued
+  running
+  success
+  failed
+  cancelled
+}
+
+enum ServiceStatus {
+  running
+  stopped
+  degraded
+  unknown
+}
+
+enum NotificationType {
+  info
+  success
+  warning
+  error
+}
+
+enum SecuritySeverity {
+  low
+  medium
+  high
+  critical
+}
+
+enum FileEntryType {
+  file
+  folder
+  symlink
+}
+
+enum DnsRecordType {
+  A
+  AAAA
+  CNAME
+  MX
+  TXT
+  SRV
+  CAA
+  NS
+  PTR
+}
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  description String?
+  permissions Json
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model User {
+  id                String        @id @default(uuid()) @db.Uuid
+  username          String        @unique
+  email             String        @unique
+  passwordHash      String
+  roleId            String        @db.Uuid
+  role              Role          @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  status            UserStatus     @default(active)
+  twoFactorEnabled  Boolean        @default(false)
+  twoFactorSecret   String?
+  locale            String        @default("en")
+  theme             String        @default("dark")
+  lastLoginAt       DateTime?
+  tokenVersion      Int           @default(0)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  resellerProfile   ResellerProfile?
+  hostingAccounts   HostingAccount[] @relation("HostingAccountOwner")
+  apiTokens         ApiToken[]
+  notifications     Notification[]
+  auditLogs         AuditLog[]     @relation("AuditActor")
+  tasks             Task[]         @relation("TaskCreator")
+}
+
+model ResellerProfile {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @unique @db.Uuid
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  maxAccounts    Int      @default(0)
+  allowedPackages Json
+  privileges     Json
+  nameservers    Json
+  sharedIp       String?
+  dedicatedIps   Json
+  hostingAccounts HostingAccount[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Package {
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String   @unique
+  diskLimit       Int
+  bandwidthLimit  Int
+  maxDomains      Int
+  maxSubdomains   Int
+  maxParkedDomains Int
+  maxAddonDomains Int
+  maxEmailAccounts Int
+  maxDatabases    Int
+  maxFtpAccounts  Int
+  maxCronJobs     Int
+  maxApiTokens    Int
+  maxInodes       Int
+  featureSet      Json
+  hostingAccounts HostingAccount[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model HostingAccount {
+  id                String              @id @default(uuid()) @db.Uuid
+  ownerUserId       String              @db.Uuid
+  ownerUser         User                @relation("HostingAccountOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  resellerProfileId String?             @db.Uuid
+  resellerProfile   ResellerProfile?    @relation(fields: [resellerProfileId], references: [id], onDelete: SetNull)
+  username          String              @unique
+  primaryDomain     String              @unique
+  packageId         String              @db.Uuid
+  package           Package             @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  status            HostingAccountStatus @default(pending)
+  homeDirectory     String
+  uid               Int?
+  gid               Int?
+  diskUsed          Int                 @default(0)
+  diskLimit         Int                 @default(0)
+  bandwidthUsed     Int                 @default(0)
+  bandwidthLimit    Int                 @default(0)
+  inodeUsed         Int                 @default(0)
+  inodeLimit        Int                 @default(0)
+  ipAddress         String?
+  phpVersion        String?             @default("8.3")
+  suspendedAt       DateTime?
+  suspensionReason  String?
+  notes             String?
+  domains           Domain[]
+  emailAccounts     EmailAccount[]
+  emailForwarders   EmailForwarder[]
+  databases         Database[]
+  databaseUsers     DatabaseUser[]
+  ftpAccounts       FtpAccount[]
+  backupJobs        BackupJob[]
+  backupSchedules   BackupSchedule[]
+  cronJobs          CronJob[]
+  fileEntries       FileEntry[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+}
+
+model Domain {
+  id            String      @id @default(uuid()) @db.Uuid
+  accountId     String      @db.Uuid
+  account       HostingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  domain        String      @unique
+  type          DomainType
+  documentRoot  String
+  sslEnabled    Boolean     @default(false)
+  forceHttps    Boolean     @default(false)
+  phpVersion    String?     @default("8.3")
+  dnsZone       DnsZone?
+  emailAccounts EmailAccount[]
+  sslCertificates SslCertificate[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model DnsZone {
+  id        String   @id @default(uuid()) @db.Uuid
+  domainId  String   @unique @db.Uuid
+  domain    Domain   @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  zoneName  String
+  serial    Int      @default(1)
+  records   Json
+  dnsRecords DnsRecord[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DnsRecord {
+  id        String        @id @default(uuid()) @db.Uuid
+  zoneId    String        @db.Uuid
+  zone      DnsZone       @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  type      DnsRecordType
+  name      String
+  value     String
+  priority  Int?
+  ttl       Int           @default(3600)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model EmailAccount {
+  id          String             @id @default(uuid()) @db.Uuid
+  accountId   String             @db.Uuid
+  account     HostingAccount     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  domainId    String             @db.Uuid
+  domain      Domain             @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  localPart   String
+  email       String             @unique
+  passwordHash String
+  quotaMb     Int                @default(0)
+  usedMb      Int                @default(0)
+  status      EmailAccountStatus  @default(active)
+  autoresponders Autoresponder[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@unique([domainId, localPart])
+}
+
+model EmailForwarder {
+  id           String          @id @default(uuid()) @db.Uuid
+  accountId    String          @db.Uuid
+  account      HostingAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  source       String
+  destination  String
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+model Autoresponder {
+  id             String        @id @default(uuid()) @db.Uuid
+  emailAccountId String        @db.Uuid
+  emailAccount   EmailAccount  @relation(fields: [emailAccountId], references: [id], onDelete: Cascade)
+  subject        String
+  body           String
+  startsAt       DateTime?
+  endsAt         DateTime?
+  enabled        Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Database {
+  id         String       @id @default(uuid()) @db.Uuid
+  accountId  String       @db.Uuid
+  account    HostingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  name       String
+  type       DatabaseType @default(mysql)
+  sizeMb     Int          @default(0)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@unique([accountId, name])
+}
+
+model DatabaseUser {
+  id           String       @id @default(uuid()) @db.Uuid
+  accountId    String       @db.Uuid
+  account      HostingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  username     String
+  passwordHash String
+  privileges   Json
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([accountId, username])
+}
+
+model FtpAccount {
+  id           String       @id @default(uuid()) @db.Uuid
+  accountId    String       @db.Uuid
+  account      HostingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  username     String
+  homeDirectory String
+  quotaMb      Int          @default(0)
+  status       String       @default("active")
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([accountId, username])
+}
+
+model SslCertificate {
+  id              String               @id @default(uuid()) @db.Uuid
+  domainId        String               @db.Uuid
+  domain          Domain               @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  issuer          String
+  type            SslCertificateType   @default(letsencrypt)
+  certificatePath String
+  privateKeyPath  String
+  expiresAt       DateTime?
+  autoRenew       Boolean              @default(false)
+  status          SslCertificateStatus @default(pending)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@unique([domainId, type])
+}
+
+model BackupJob {
+  id           String        @id @default(uuid()) @db.Uuid
+  accountId    String        @db.Uuid
+  account      HostingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  type         BackupType
+  status       BackupStatus  @default(pending)
+  storagePath  String
+  sizeMb       Int           @default(0)
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  error        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model BackupSchedule {
+  id          String           @id @default(uuid()) @db.Uuid
+  accountId   String           @db.Uuid
+  account     HostingAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  frequency   BackupFrequency
+  retention   Int
+  destination String
+  enabled     Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model CronJob {
+  id         String          @id @default(uuid()) @db.Uuid
+  accountId  String          @db.Uuid
+  account    HostingAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  command    String
+  schedule   String
+  enabled    Boolean         @default(true)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+}
+
+model FileEntry {
+  id          String           @id @default(uuid()) @db.Uuid
+  accountId   String           @db.Uuid
+  account     HostingAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  path        String
+  name        String
+  type        FileEntryType
+  sizeBytes   Int              @default(0)
+  permissions String?
+  metadata    Json?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([accountId, path])
+}
+
+model ServerService {
+  id           String        @id @default(uuid()) @db.Uuid
+  name         String        @unique
+  status       ServiceStatus @default(unknown)
+  port         Int?
+  version      String?
+  enabled      Boolean       @default(true)
+  lastCheckedAt DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model ServerMetric {
+  id          String   @id @default(uuid()) @db.Uuid
+  cpuUsage    Float
+  memoryUsage Float
+  diskUsage   Float
+  loadAverage  Float
+  networkIn   Float
+  networkOut  Float
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model SecurityEvent {
+  id         String           @id @default(uuid()) @db.Uuid
+  severity   SecuritySeverity
+  source     String
+  message    String
+  metadata   Json
+  createdAt  DateTime         @default(now())
+}
+
+model ApiToken {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  tokenHash   String   @unique
+  scopes      Json
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Notification {
+  id         String           @id @default(uuid()) @db.Uuid
+  userId     String           @db.Uuid
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       NotificationType
+  title      String
+  message    String
+  readAt     DateTime?
+  createdAt  DateTime         @default(now())
+}
+
+model AuditLog {
+  id           String   @id @default(uuid()) @db.Uuid
+  actorUserId  String?  @db.Uuid
+  actorUser    User?    @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  action       String
+  resourceType String
+  resourceId   String?
+  ipAddress    String?
+  userAgent    String?
+  metadata     Json
+  createdAt    DateTime @default(now())
+
+  @@index([resourceType, resourceId])
+}
+
+model Task {
+  id            String      @id @default(uuid()) @db.Uuid
+  type          String
+  status        TaskStatus   @default(queued)
+  progress      Int          @default(0)
+  payload       Json
+  result        Json?
+  error         String?
+  createdByUserId String?    @db.Uuid
+  createdBy     User?        @relation("TaskCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model Settings {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @unique
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

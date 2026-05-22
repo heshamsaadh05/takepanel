@@ -1,0 +1,16 @@
+[Unit]
+Description=HostMaster System Agent
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/hostmaster/agent
+EnvironmentFile=/opt/hostmaster/agent/.env
+ExecStart=/usr/bin/node /opt/hostmaster/agent/dist/index.js
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

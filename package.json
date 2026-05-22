@@ -1,0 +1,14 @@
+{
+  "name": "hostmaster-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "migrate": "npm --prefix backend run prisma:migrate",
+    "seed": "npm --prefix backend run seed",
+    "create-admin": "npm --prefix backend run create-admin",
+    "worker": "npm --prefix backend run worker",
+    "agent": "npm --prefix agent run dev"
+  }
+}
