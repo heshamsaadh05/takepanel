@@ -31,14 +31,14 @@ log() { echo "[TakePanel Rebuild] $*"; }
 
 install_packages_apt() {
   apt update
-  apt install -y git curl nginx python3 python3-venv python3-pip openssl ca-certificates gnupg pigz sudo
+  apt install -y git curl nginx python3 python3-venv python3-pip openssl ca-certificates gnupg pigz sudo mariadb-client
   curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
   apt install -y nodejs
 }
 
 install_packages_dnf() {
   dnf install -y epel-release
-  dnf install -y git curl nginx python3 python3-pip openssl ca-certificates pigz sudo
+  dnf install -y git curl nginx python3 python3-pip openssl ca-certificates pigz sudo mariadb
   curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
   dnf install -y nodejs
 }

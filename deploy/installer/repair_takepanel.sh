@@ -30,13 +30,13 @@ log() { echo "[TakePanel Repair] $*"; }
 
 install_node20_apt() {
   apt update
-  apt install -y curl ca-certificates gnupg sudo
+  apt install -y curl ca-certificates gnupg sudo mariadb-client
   curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
   apt install -y nodejs
 }
 
 install_node20_dnf() {
-  dnf install -y curl ca-certificates sudo
+  dnf install -y curl ca-certificates sudo mariadb
   curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
   dnf install -y nodejs
 }
