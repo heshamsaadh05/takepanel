@@ -178,7 +178,10 @@ initialize_postgresql() {
   if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname = '$POSTGRES_USER'" | grep -q 1; then
     sudo -u postgres createuser "$POSTGRES_USER"
   fi
-  sudo -u postgres psql -c "ALTER USER \"$POSTGRES_USER\" WITH PASSWORD '$POSTGRES_PASSWORD';"
+  sudo -u postgres psql -v ON_ERROR_STOP=1 <<SQL
+SET password_encryption = 'scram-sha-256';
+ALTER USER "$POSTGRES_USER" WITH PASSWORD '$POSTGRES_PASSWORD';
+SQL
 
   if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname = '$POSTGRES_DB'" | grep -q 1; then
     sudo -u postgres createdb -O "$POSTGRES_USER" "$POSTGRES_DB"
