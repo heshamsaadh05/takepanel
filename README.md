@@ -12,6 +12,14 @@ The project is designed to grow into a full hosting platform with admin and user
 
 ## Quick Start
 
+### One-Command Server Install
+
+Use the official bootstrap script to install HostMaster on a fresh Linux server with a single command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/heshamsaadh05/takepanel/main/deploy/installer/bootstrap_install.sh | sudo bash
+```
+
 ### 1. Install dependencies
 
 Backend:
@@ -102,4 +110,3 @@ After seeding, the default admin login is:
 - [Security](docs/security.md)
 - [Deployment](docs/deployment.md)
 - [Roadmap](docs/roadmap.md)
-
