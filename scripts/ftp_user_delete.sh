@@ -4,6 +4,8 @@ set -euo pipefail
 USERNAME="${1:-}"
 PROTOCOL="${2:-vsftpd}"
 HOME_DIR="${3:-}"
+VSFTPD_LIST_PRIMARY="/etc/vsftpd/user_list"
+VSFTPD_LIST_LEGACY="/etc/vsftpd/userlist"
 
 if [[ -z "$USERNAME" || -z "$HOME_DIR" ]]; then
   echo "Usage: ftp_user_delete.sh <username> <vsftpd|proftpd|openssh-sftp> <home_dir>"
@@ -17,10 +19,12 @@ fi
 rm -rf "$HOME_DIR"
 
 if [[ "$PROTOCOL" == "vsftpd" ]]; then
-  if [[ -f /etc/vsftpd/userlist ]]; then
-    grep -vxF "$USERNAME" /etc/vsftpd/userlist > /tmp/vsftpd_userlist.tmp || true
-    mv /tmp/vsftpd_userlist.tmp /etc/vsftpd/userlist
-  fi
+  mkdir -p /etc/vsftpd
+  touch "$VSFTPD_LIST_PRIMARY" "$VSFTPD_LIST_LEGACY"
+  for list_file in "$VSFTPD_LIST_PRIMARY" "$VSFTPD_LIST_LEGACY"; do
+    grep -vxF "$USERNAME" "$list_file" > /tmp/vsftpd_userlist.tmp || true
+    mv /tmp/vsftpd_userlist.tmp "$list_file"
+  done
   systemctl reload vsftpd || true
 elif [[ "$PROTOCOL" == "proftpd" ]]; then
   systemctl reload proftpd || true

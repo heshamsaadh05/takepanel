@@ -6,6 +6,8 @@ PASSWORD="${2:-}"
 PROTOCOL="${3:-vsftpd}"
 HOME_DIR="${4:-}"
 PERMISSIONS="${5:-rw}"
+VSFTPD_LIST_PRIMARY="/etc/vsftpd/user_list"
+VSFTPD_LIST_LEGACY="/etc/vsftpd/userlist"
 
 if [[ -z "$USERNAME" || -z "$PASSWORD" || -z "$HOME_DIR" ]]; then
   echo "Usage: ftp_user_create.sh <username> <password> <vsftpd|proftpd|openssh-sftp> <home_dir> [r|rw]"
@@ -14,7 +16,11 @@ fi
 
 # Create a system account used by FTP/SFTP daemons.
 if ! id "$USERNAME" >/dev/null 2>&1; then
-  useradd -m -d "$HOME_DIR" -s /sbin/nologin "$USERNAME"
+  if [[ -e "$HOME_DIR" ]]; then
+    useradd -M -d "$HOME_DIR" -s /sbin/nologin "$USERNAME"
+  else
+    useradd -m -d "$HOME_DIR" -s /sbin/nologin "$USERNAME"
+  fi
 fi
 
 echo "$USERNAME:$PASSWORD" | chpasswd
@@ -28,7 +34,11 @@ else
 fi
 
 if [[ "$PROTOCOL" == "vsftpd" ]]; then
-  grep -qxF "$USERNAME" /etc/vsftpd/userlist || echo "$USERNAME" >> /etc/vsftpd/userlist
+  mkdir -p /etc/vsftpd
+  touch "$VSFTPD_LIST_PRIMARY" "$VSFTPD_LIST_LEGACY"
+  for list_file in "$VSFTPD_LIST_PRIMARY" "$VSFTPD_LIST_LEGACY"; do
+    grep -qxF "$USERNAME" "$list_file" || echo "$USERNAME" >> "$list_file"
+  done
   systemctl reload vsftpd || true
 elif [[ "$PROTOCOL" == "proftpd" ]]; then
   systemctl reload proftpd || true
