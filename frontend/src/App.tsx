@@ -14,7 +14,6 @@ import { UserDatabasesPage } from './pages/panel/DatabasesPage';
 import { UserBackupsPage } from './pages/panel/BackupsPage';
 import { UserSslPage } from './pages/panel/SslPage';
 import { UserSoftwarePage } from './pages/panel/SoftwarePage';
-import { AppShell } from './layouts/AppLayout';
 import { AdminLayout } from './layouts/AdminLayout';
 import { UserLayout } from './layouts/UserLayout';
 import { FeaturePage } from './pages/common/FeaturePage';
@@ -23,6 +22,7 @@ import { HardDrive, Bell, ServerCog, ShieldCheck, Mail, Database, Settings, Serv
 export default function App() {
   return (
     <Routes>
+      <Route path="/" element={<LoginPage />} />
       <Route path="/setup-complete" element={<SetupCompletePage />} />
       <Route path="/login" element={<LoginPage />} />
 
@@ -55,7 +55,7 @@ export default function App() {
         <Route path="preferences" element={<FeaturePage title="Preferences" description="Account contact details, language, theme, teams, and notification preferences." breadcrumbs={[{ label: 'Home', href: '/panel/dashboard' }, { label: 'Preferences' }]} icon={<Settings className="h-5 w-5" />} />} />
       </Route>
 
-      <Route path="*" element={<AppShell><Navigate to="/login" replace /></AppShell>} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }
