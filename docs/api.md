@@ -27,6 +27,11 @@ The API is organized around a small set of core authenticated endpoints and a la
 ## Dashboard
 - `GET /api/dashboard/overview`
 
+## Bootstrap / Post-Install
+- `GET /api/bootstrap/summary?token=...`
+
+This endpoint powers the one-time post-installation summary page. It returns the seeded administrator credentials and a service status snapshot when the installer-generated token is provided.
+
 ## Feature Modules
 The following module roots are scaffolded and ready for deeper implementation:
 - `/api/accounts`
@@ -59,4 +64,3 @@ Errors:
 ```json
 { "success": false, "error": { "code": "error_code", "message": "Readable message" } }
 ```
-

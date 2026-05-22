@@ -23,6 +23,7 @@ const envSchema = z.object({
   ADMIN_BOOTSTRAP_EMAIL: z.string().email().default('admin@hostmaster.local'),
   ADMIN_BOOTSTRAP_PASSWORD: z.string().min(8).default('ChangeMe123!'),
   ADMIN_BOOTSTRAP_USERNAME: z.string().default('admin'),
+  BOOTSTRAP_TOKEN: z.string().default(''),
   DEFAULT_LOCALE: z.string().default('en'),
   DEFAULT_THEME: z.string().default('dark'),
   MOCK_SYSTEM_MODE: z.coerce.boolean().default(true),

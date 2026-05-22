@@ -13,6 +13,7 @@ import { usersRouter } from './users/users.routes';
 import { rolesRouter } from './roles/roles.routes';
 import { dashboardRouter } from './dashboard/dashboard.routes';
 import { healthRouter } from './server/health.routes';
+import { bootstrapRouter } from './server/bootstrap.routes';
 import { createPlaceholderRouter } from './common/placeholder';
 
 export const app = express();
@@ -47,6 +48,7 @@ app.get('/', (_req, res) => {
 });
 
 app.use(`${apiPrefix}/health`, healthRouter);
+app.use(`${apiPrefix}/bootstrap`, bootstrapRouter);
 app.use(`${apiPrefix}/auth`, authRouter);
 app.use(`${apiPrefix}/users`, usersRouter);
 app.use(`${apiPrefix}/roles`, rolesRouter);

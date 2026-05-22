@@ -25,6 +25,7 @@ POSTGRES_DB="hostmaster"
 POSTGRES_USER="hostmaster"
 POSTGRES_PASSWORD="$(openssl rand -hex 16)"
 AGENT_TOKEN="$(openssl rand -hex 32)"
+BOOTSTRAP_TOKEN="$(openssl rand -hex 24)"
 HOSTMASTER_ENV="$BACKEND_DIR/.env"
 AGENT_ENV="$AGENT_DIR/.env"
 BACKEND_SERVICE_FILE="/etc/systemd/system/hostmaster-backend.service"
@@ -132,6 +133,7 @@ RATE_LIMIT_MAX=120
 ADMIN_BOOTSTRAP_EMAIL=admin@hostmaster.local
 ADMIN_BOOTSTRAP_PASSWORD=ChangeMe123!
 ADMIN_BOOTSTRAP_USERNAME=admin
+BOOTSTRAP_TOKEN=$BOOTSTRAP_TOKEN
 DEFAULT_LOCALE=en
 DEFAULT_THEME=dark
 MOCK_SYSTEM_MODE=true
@@ -425,6 +427,7 @@ main() {
 
   log "Installation completed"
   echo "Panel URL: http://$SERVER_IP"
+  echo "Setup summary: http://$SERVER_IP/setup-complete?token=$BOOTSTRAP_TOKEN"
   echo "Admin login: admin@hostmaster.local"
   echo "Admin password: ChangeMe123!"
   echo "Backend service: systemctl status hostmaster-backend --no-pager -l"

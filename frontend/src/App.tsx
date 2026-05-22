@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
+import { SetupCompletePage } from './pages/SetupCompletePage';
 import { AdminDashboardPage } from './pages/admin/DashboardPage';
 import { AdminAccountsPage } from './pages/admin/AccountsPage';
 import { AdminPackagesPage } from './pages/admin/PackagesPage';
@@ -22,6 +23,7 @@ import { HardDrive, Bell, ServerCog, ShieldCheck, Mail, Database, Settings, Serv
 export default function App() {
   return (
     <Routes>
+      <Route path="/setup-complete" element={<SetupCompletePage />} />
       <Route path="/login" element={<LoginPage />} />
 
       <Route path="/admin" element={<ProtectedRoute roles={['super_admin', 'server_admin', 'reseller']}><AdminLayout /></ProtectedRoute>}>

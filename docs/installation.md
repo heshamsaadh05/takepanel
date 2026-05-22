@@ -68,6 +68,7 @@ After the installer completes:
 
 - Email: `admin@hostmaster.local`
 - Password: `ChangeMe123!`
+- The installer also prints a one-time setup summary link in the form `/setup-complete?token=...` so you can review credentials and service status in the browser immediately after installation.
 
 ## Notes
 
